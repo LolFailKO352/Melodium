@@ -23,8 +23,6 @@ A modern, fast, and unofficial YouTube Music client built on the [.NET MAUI](htt
 |----------------|--------------|
 | <img width="1906" height="1018" alt="image" src="https://github.com/user-attachments/assets/74c4fc6c-f2cb-498b-aa5f-8542d662e948" /> | <img width="1906" height="1018" alt="image" src="https://github.com/user-attachments/assets/8639cb35-da04-49de-8e50-09847734c549" /> |
 
-*(Note: Don't forget to add your own images to the `docs/images/` folder later and update the filenames above!)*
-
 ## 🎚️ How to install
 
 To install application:
@@ -39,7 +37,7 @@ The application uses a secure built-in browser window (WebView) to allow you to 
 
 - **Framework**: [.NET MAUI](https://dotnet.microsoft.com/apps/maui)
 - **Architecture**: MVVM (Model-View-ViewModel) using [CommunityToolkit.Mvvm](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
-- **Media**: `CommunityToolkit.Maui.MediaElement`
+- **Media**: [libVLCsharp](https://github.com/videolan/libvlcsharp)
 - **Data and API**: 
   - [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode)
   - Custom Melodium API integration
