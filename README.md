@@ -1,11 +1,11 @@
 # Melodium (Unofficial MAUI Client)
 
 
-A modern, fast, and unofficial Melodium client built on the [.NET MAUI](https://dotnet.microsoft.com/en-us/apps/maui) platform. This application brings the best of Melodium straight to your desktop using a native interface, improved music recommendation algorithms, and deep system integration.
+A modern, fast, and unofficial YouTube Music client built on the [.NET MAUI](https://dotnet.microsoft.com/en-us/apps/maui) platform. This application brings the best of YouTube Music straight to your desktop using a native interface, improved music recommendation algorithms, and deep system integration.
 
 ## ✨ Features
 
-- **🎵 Native Playback**: Smooth and high-quality background music playback using the native MAUI MediaElement.
+- **🎵 Native Playback**: Smooth and high-quality background music playback using the libVLCsharp audio API.
 - **🧠 Smart Tailored Recommendations**: The app includes a unique algorithm that analyzes your personal library (saved tracks, artists, albums, and playlists) and automatically generates personalized radio and top picks tailored just for you on the home screen.
 - **🎨 Modern UI/UX**: Native design inspired by Windows 11 / WinUI 3. Fully responsive layout that adapts to the window size, with support for automatic switching between Light and Dark mode.
 - **🌍 Full Localization**: Built-in translation engine that translates the entire application on the fly for non-native users.
