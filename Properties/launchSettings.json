@@ -1,7 +1,11 @@
 {
   "profiles": {
+    "Melodium (Unpackaged)": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    },
     "Windows Machine": {
-      "commandName": "MsixPackage",
+      "commandName": "Project",
       "nativeDebugging": false
     }
   }

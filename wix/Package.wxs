@@ -1,0 +1,65 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="Melodium"
+           Manufacturer="Deeemon"
+           Version="1.0.0.0"
+           UpgradeCode="4F2B6699-317A-456E-857D-8F719E868D9A"
+           Scope="perMachine"
+           Codepage="65001">
+    
+    <MajorUpgrade DowngradeErrorMessage="Novější verze aplikace Melodium je již nainstalována." />
+    
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="Resources\Raw\trayicon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Melodium" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Melodium" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <ComponentGroup Id="ProductComponents">
+      <!-- Main Executable Component with Shortcuts -->
+      <Component Id="MainExecutable" Directory="INSTALLFOLDER" Guid="7B9C1E20-4286-4B8D-927A-4FF32E072051">
+        <File Id="MelodiumExe" Source="publish\Melodium.exe" KeyPath="yes" />
+        
+        <!-- Start Menu Shortcut -->
+        <Shortcut Id="StartMenuShortcut"
+                  Directory="ApplicationProgramsFolder"
+                  Name="Melodium"
+                  Description="Moderní YouTube Music přehrávač"
+                  Target="[#MelodiumExe]"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+
+        <!-- Desktop Shortcut -->
+        <Shortcut Id="DesktopShortcut"
+                  Directory="DesktopFolder"
+                  Name="Melodium"
+                  Description="Moderní YouTube Music přehrávač"
+                  Target="[#MelodiumExe]"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+      </Component>
+
+      <!-- Start Menu Folder Cleanup -->
+      <Component Id="CleanupShortcuts" Directory="ApplicationProgramsFolder" Guid="6A123C4D-5E6F-7890-ABCD-EF1234567890">
+        <RemoveFolder Id="CleanProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Deeemon\Melodium" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="MainFeature" Title="Melodium" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="PublishedFiles" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+  </Package>
+</Wix>

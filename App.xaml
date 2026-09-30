@@ -1,14 +1,43 @@
-<?xml version = "1.0" encoding = "UTF-8" ?>
-<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:Melodium"
-             x:Class="Melodium.App">
+<Application
+    x:Class="Melodium.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Melodium"
+    xmlns:converters="using:Melodium.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
-                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+
+            <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+            <converters:BoolToVisibilityConverter x:Key="InverseBoolToVis" Invert="True" />
+            <converters:NullToVisibilityConverter x:Key="NullToVis" />
+            <converters:NullToVisibilityConverter x:Key="InverseNullToVis" Invert="True" />
+            <converters:StringEqualsToVisibilityConverter x:Key="StringToVis" />
+            <converters:BoolToFontWeightConverter x:Key="BoolToFontWeight" />
+            <converters:BoolToDoubleConverter x:Key="BoolToLyricOpacity" TrueValue="1.0" FalseValue="0.38" />
+            <converters:BoolToDoubleConverter x:Key="BoolToLyricFontSize" TrueValue="20.0" FalseValue="16.0" />
+            <converters:BoolToVector3Converter x:Key="BoolToLyricScale" TrueScale="1.04" FalseScale="1.0" />
+            <converters:BoolToThicknessConverter x:Key="BoolToLyricBorderThick" TrueValue="1.0" FalseValue="0.0" />
+
+            <SolidColorBrush x:Key="MelodiumAccentBrush" Color="#28C6D0" />
+            <SolidColorBrush x:Key="MelodiumCardBorderBrush" Color="#2D2F3C" />
+            <SolidColorBrush x:Key="MelodiumMutedBrush" Color="#8E8E93" />
+            <SolidColorBrush x:Key="MelodiumWhiteBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="MelodiumTransparentBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="MelodiumTabActiveBgBrush" Color="#2E3040" />
+            <SolidColorBrush x:Key="MelodiumLyricActiveBgBrush" Color="#2028C6D0" />
+            <SolidColorBrush x:Key="MelodiumLyricActiveBorderBrush" Color="#4428C6D0" />
+
+            <converters:BoolToBrushConverter x:Key="BoolToLyricBrush" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="{StaticResource MelodiumMutedBrush}" />
+            <converters:BoolToBrushConverter x:Key="BoolToLyricBg" TrueBrush="{StaticResource MelodiumLyricActiveBgBrush}" FalseBrush="{StaticResource MelodiumTransparentBrush}" />
+            <converters:BoolToBrushConverter x:Key="BoolToLyricBorder" TrueBrush="{StaticResource MelodiumLyricActiveBorderBrush}" FalseBrush="{StaticResource MelodiumTransparentBrush}" />
+
+            <converters:BoolToBrushConverter x:Key="BoolToQueueTabBg" TrueBrush="{StaticResource MelodiumTransparentBrush}" FalseBrush="{StaticResource MelodiumTabActiveBgBrush}" />
+            <converters:BoolToBrushConverter x:Key="BoolToQueueTabFg" TrueBrush="{StaticResource MelodiumMutedBrush}" FalseBrush="{StaticResource MelodiumWhiteBrush}" />
+            <converters:BoolToBrushConverter x:Key="BoolToLyricsTabBg" TrueBrush="{StaticResource MelodiumLyricActiveBgBrush}" FalseBrush="{StaticResource MelodiumTransparentBrush}" />
+            <converters:BoolToBrushConverter x:Key="BoolToLyricsTabFg" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="{StaticResource MelodiumMutedBrush}" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

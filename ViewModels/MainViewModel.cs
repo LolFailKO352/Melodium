@@ -6,9 +6,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Storage;
-using Microsoft.Maui.Controls;
 using Melodium.Models;
 using Melodium.Services;
 using System.Globalization;
@@ -81,7 +78,7 @@ public partial class MainViewModel : ObservableObject
         _discordRpcService?.HandleSettingsChanged();
     }
     
-    [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Vyhledat aplikace, hry a další (nebo hudbu!)";
+    [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Hledat skladby, interprety, alba...";
     [ObservableProperty] public partial string TextLanguageDescription { get; set; } = "Vyberte preferovaný jazyk aplikace. Seznam obsahuje všechny dostupné světové jazyky.";
     [ObservableProperty] public partial string TextHeroSubtitle { get; set; } = "Poslouchej hudbu bez omezení a bez reklam";
     [ObservableProperty] public partial string TextStartListening { get; set; } = "Začít poslouchat";
@@ -93,6 +90,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string TextGoToLogin { get; set; } = "Přejít k přihlášení";
     [ObservableProperty] public partial string TextMusic { get; set; } = "Hudba";
     [ObservableProperty] public partial string TextSongs { get; set; } = "Skladby";
+    [ObservableProperty] public partial string TextPlaylists { get; set; } = "Playlisty";
     [ObservableProperty] public partial string TextAlbums { get; set; } = "Alba";
     [ObservableProperty] public partial string TextArtists { get; set; } = "Interpreti";
     [ObservableProperty] public partial string TextAddFolder { get; set; } = "Přidat složku";
@@ -136,7 +134,7 @@ public partial class MainViewModel : ObservableObject
         { nameof(TextSettings), "Nastavení" },
         { nameof(TextEnableDiscordRpc), "Zobrazovat aktivitu na Discordu" },
         { nameof(TextLanguageSelection), "Výběr jazyka" },
-        { nameof(TextSearchPlaceholder), "Vyhledat aplikace, hry a další (nebo hudbu!)" },
+        { nameof(TextSearchPlaceholder), "Hledat skladby, interprety, alba..." },
         { nameof(TextLanguageDescription), "Vyberte preferovaný jazyk aplikace. Seznam obsahuje všechny dostupné světové jazyky." },
         { nameof(TextHeroSubtitle), "Poslouchej hudbu bez omezení a bez reklam" },
         { nameof(TextStartListening), "Začít poslouchat" },
@@ -206,7 +204,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PlayPauseGlyph))]
     public partial bool IsPlaying { get; set; }
+
+    public string PlayPauseGlyph => IsPlaying ? "\uE769" : "\uE768";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCurrentSongNotNull))]
@@ -245,8 +246,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string LibraryTab { get; set; } = "Songs"; // Songs, Playlists, Albums, Artists
 
-
-
     [RelayCommand]
     private void SetLibraryTab(string tabName)
     {
@@ -257,7 +256,10 @@ public partial class MainViewModel : ObservableObject
     public partial double Volume { get; set; } = 0.5;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VolumeGlyph))]
     public partial string VolumeIcon { get; set; } = "\uE767";
+
+    public string VolumeGlyph => VolumeIcon;
 
     [ObservableProperty]
     public partial string VolumePercentageText { get; set; } = "50 %";
@@ -295,6 +297,19 @@ public partial class MainViewModel : ObservableObject
 
     // Kolekce
     public ObservableCollection<SongModel> SearchResults { get; } = new();
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSearchResultsEmpty))]
+    public partial bool HasSearched { get; set; }
+
+    public bool IsSearchResultsEmpty => HasSearched && SearchResults.Count == 0 && !IsBusy;
+
+    [ObservableProperty]
+    public partial ArtistDetailsModel? CurrentArtist { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsArtistLoading { get; set; }
+
+    private string? _previousView;
     public ObservableCollection<SongModel> HomeRecommendations { get; } = new();
     public ObservableCollection<SongModel> LibrarySongs { get; } = new();
     public ObservableCollection<PlaylistModel> LibraryPlaylists { get; } = new();
@@ -313,7 +328,42 @@ public partial class MainViewModel : ObservableObject
     public partial bool IsShuffle { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RepeatGlyph))]
+    [NotifyPropertyChangedFor(nameof(IsRepeatActive))]
     public partial int RepeatMode { get; set; } // 0 = Off, 1 = Repeat Queue, 2 = Repeat Song
+
+    public bool IsRepeatActive => RepeatMode > 0;
+
+    public string RepeatGlyph => RepeatMode switch
+    {
+        1 => "\uE8EE",
+        2 => "\uE8ED",
+        _ => "\uE8EE"
+    };
+
+    public string QueueCountText => $"{TextSongsInQueueLabel} {PlaybackQueue.Count}";
+
+    [ObservableProperty]
+    public partial bool IsKaraokeMode { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLyricsLoading { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasLyrics { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsSyncedLyrics { get; set; }
+
+    [ObservableProperty]
+    public partial string? LyricsSource { get; set; }
+
+    [ObservableProperty]
+    public partial LyricLineModel? CurrentLyricLine { get; set; }
+
+    public ObservableCollection<LyricLineModel> LyricsLines { get; } = new();
+
+    public event Action<LyricLineModel>? ActiveLyricChanged;
 
     [ObservableProperty]
     public partial SongModel? SelectedQueueSong { get; set; }
@@ -377,13 +427,15 @@ public partial class MainViewModel : ObservableObject
     }
 
     private readonly DiscordRpcService _discordRpcService;
+    private readonly LyricsService _lyricsService;
 
-    public MainViewModel(MelodiumService ytService, IAudioService audioService, TranslationService translationService, DiscordRpcService discordRpcService)
+    public MainViewModel(MelodiumService ytService, IAudioService audioService, TranslationService translationService, DiscordRpcService discordRpcService, LyricsService lyricsService)
     {
         _ytService = ytService;
         _audioService = audioService;
         _translationService = translationService;
         _discordRpcService = discordRpcService;
+        _lyricsService = lyricsService;
 
         IsDiscordRpcEnabled = Preferences.Default.Get("IsDiscordRpcEnabled", false);
         _discordRpcService.HandleSettingsChanged();
@@ -426,7 +478,114 @@ public partial class MainViewModel : ObservableObject
             DurationSeconds = duration.TotalSeconds;
             PositionText = position.ToString(@"m\:ss");
             DurationText = duration.TotalSeconds > 0 ? duration.ToString(@"m\:ss") : "0:00";
+
+            if (IsKaraokeMode && IsSyncedLyrics && LyricsLines.Count > 0)
+            {
+                UpdateActiveLyricLine(position);
+            }
         });
+    }
+
+    private void UpdateActiveLyricLine(TimeSpan position)
+    {
+        if (LyricsLines.Count == 0) return;
+
+        LyricLineModel? activeLine = null;
+        var offsetPosition = position + TimeSpan.FromMilliseconds(150);
+
+        for (int i = 0; i < LyricsLines.Count; i++)
+        {
+            var line = LyricsLines[i];
+            var nextTime = (i + 1 < LyricsLines.Count) ? LyricsLines[i + 1].Timestamp : TimeSpan.MaxValue;
+            if (offsetPosition >= line.Timestamp && offsetPosition < nextTime)
+            {
+                activeLine = line;
+                break;
+            }
+        }
+
+        if (activeLine != null && activeLine != CurrentLyricLine)
+        {
+            foreach (var line in LyricsLines)
+            {
+                line.IsActive = (line == activeLine);
+            }
+            CurrentLyricLine = activeLine;
+            ActiveLyricChanged?.Invoke(activeLine);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ToggleKaraokeModeAsync()
+    {
+        IsKaraokeMode = !IsKaraokeMode;
+        if (IsKaraokeMode && LyricsLines.Count == 0 && CurrentSong != null)
+        {
+            await LoadLyricsForCurrentSongAsync();
+        }
+    }
+
+    [RelayCommand]
+    public void SeekToLyric(LyricLineModel? line)
+    {
+        if (line != null && line.Timestamp > TimeSpan.Zero)
+        {
+            SeekTo(line.Timestamp);
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadLyricsForCurrentSongAsync()
+    {
+        if (CurrentSong == null)
+        {
+            LyricsLines.Clear();
+            HasLyrics = false;
+            return;
+        }
+
+        IsLyricsLoading = true;
+        HasLyrics = false;
+        LyricsLines.Clear();
+        CurrentLyricLine = null;
+
+        try
+        {
+            var result = await _lyricsService.GetLyricsAsync(
+                CurrentSong.Title,
+                CurrentSong.Artist,
+                DurationSeconds,
+                CurrentSong.VideoId);
+
+            if (result != null && result.Lines.Count > 0)
+            {
+                IsSyncedLyrics = result.IsSynced;
+                LyricsSource = result.Source;
+                foreach (var l in result.Lines)
+                {
+                    LyricsLines.Add(l);
+                }
+                HasLyrics = true;
+
+                if (IsSyncedLyrics)
+                {
+                    UpdateActiveLyricLine(TimeSpan.FromSeconds(PositionSeconds));
+                }
+            }
+            else
+            {
+                HasLyrics = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Chyba při stahování textu: {ex.Message}");
+            HasLyrics = false;
+        }
+        finally
+        {
+            IsLyricsLoading = false;
+        }
     }
 
     private void OnAudioMediaEnded()
@@ -463,7 +622,116 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Navigate(string viewName)
     {
+        if (CurrentView != viewName && CurrentView != "Artist")
+        {
+            _previousView = CurrentView;
+        }
         CurrentView = viewName;
+    }
+
+    [RelayCommand]
+    public void GoBack()
+    {
+        CurrentView = !string.IsNullOrEmpty(_previousView) ? _previousView : "Home";
+    }
+
+    [RelayCommand]
+    public async Task OpenArtistAsync(object? param)
+    {
+        string? artistId = null;
+        string? artistName = null;
+
+        if (param is ArtistModel artistModel)
+        {
+            artistId = artistModel.Id;
+            artistName = artistModel.Name;
+        }
+        else if (param is SongModel songModel)
+        {
+            artistId = songModel.ArtistId;
+            artistName = songModel.Artist;
+        }
+        else if (param is AlbumModel albumModel)
+        {
+            artistName = albumModel.ArtistName;
+        }
+        else if (param is string str)
+        {
+            if (str.StartsWith("UC"))
+            {
+                artistId = str;
+            }
+            else
+            {
+                artistName = str;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(artistId) && string.IsNullOrWhiteSpace(artistName))
+        {
+            return;
+        }
+
+        if (CurrentView != "Artist")
+        {
+            _previousView = CurrentView;
+        }
+
+        CurrentView = "Artist";
+        IsArtistLoading = true;
+        StatusMessage = $"Načítám interpreta {artistName ?? artistId}...";
+
+        var details = await _ytService.GetArtistDetailsAsync(artistId, artistName);
+        if (details != null)
+        {
+            CurrentArtist = details;
+            StatusMessage = $"Zobrazen interpret: {details.Name}";
+        }
+        else
+        {
+            StatusMessage = "Nepodařilo se načíst informace o interpretovi.";
+        }
+
+        IsArtistLoading = false;
+    }
+
+    [RelayCommand]
+    public async Task PlayArtistTopSongsAsync()
+    {
+        if (CurrentArtist == null || CurrentArtist.TopSongs.Count == 0) return;
+
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+
+        foreach (var song in CurrentArtist.TopSongs)
+        {
+            PlaybackQueue.Add(song);
+            _originalQueue.Add(song);
+        }
+
+        CurrentQueueIndex = 0;
+        IsShuffle = false;
+        await PlayQueueCurrentSongAsync();
+    }
+
+    [RelayCommand]
+    public async Task ShuffleArtistSongsAsync()
+    {
+        if (CurrentArtist == null || CurrentArtist.TopSongs.Count == 0) return;
+
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+
+        foreach (var song in CurrentArtist.TopSongs)
+        {
+            PlaybackQueue.Add(song);
+            _originalQueue.Add(song);
+        }
+
+        CurrentQueueIndex = 0;
+        IsShuffle = true;
+        ApplyShuffle();
+        await PlayQueueCurrentSongAsync();
     }
 
     [RelayCommand]
@@ -479,11 +747,13 @@ public partial class MainViewModel : ObservableObject
         await _ytService.EnsureInitializedAsync();
         var songs = await _ytService.SearchSongsAsync(SearchQuery);
 
+        HasSearched = true;
         foreach (var song in songs)
         {
             SearchResults.Add(song);
         }
 
+        OnPropertyChanged(nameof(IsSearchResultsEmpty));
         StatusMessage = $"Hledání dokončeno. Nalezeno {songs.Count} skladeb.";
         IsBusy = false;
     }
@@ -655,13 +925,22 @@ public partial class MainViewModel : ObservableObject
         PositionText = "0:00";
         DurationText = "0:00";
 
+        // Reset or reload lyrics
+        LyricsLines.Clear();
+        CurrentLyricLine = null;
+        HasLyrics = false;
+        if (IsKaraokeMode)
+        {
+            _ = Task.Run(LoadLyricsForCurrentSongAsync);
+        }
+
         try
         {
             StatusMessage = $"[1/4] Získávám stream URL pro: {song.VideoId}...";
             VmLog($"Getting stream URL for videoId={song.VideoId}");
 
             await _ytService.EnsureInitializedAsync();
-            var streamUrl = await _ytService.GetAudioStreamUrlAsync(song.VideoId);
+            var streamUrl = await _ytService.GetAudioStreamUrlAsync(song.VideoId, $"{song.Title} {song.Artist}");
             token.ThrowIfCancellationRequested();
 
             // Nekonečná fronta (Auto-play / Radio)

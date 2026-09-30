@@ -17,6 +17,10 @@
 mono_crash.*
 
 # Build results
+publish/
+*.msi
+wix/Files.wxs
+.wix/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
