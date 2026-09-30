@@ -16,17 +16,11 @@ A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3**
 
 | Home Screen | Player and Queue |
 |-------------|----------------|
-| <img width="1906" height="1018" alt="image" src="https://github.com/user-attachments/assets/ac71d8da-a9b9-4dc8-ba5b-c0c16cf42107" /> | <img width="1906" height="1018" alt="image" src="https://github.com/user-attachments/assets/6b908b17-4bc8-4736-a5e5-2fb54f0d2ba3" /> |
+| <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/32c2d459-a91d-4f2c-947a-4b05a6a8b2e1" /> | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/3d3afd2e-5ccb-481c-aa39-4870511099a5" /> |
 
 | Search Results | Personal Library |
 |----------------|--------------|
-| <img width="1906" height="1018" alt="image" src="https://github.com/user-attachments/assets/74c4fc6c-f2cb-498b-aa5f-8542d662e948" /> | <img width="1906" height="1018" alt="image" src="https://github.com/user-attachments/assets/8639cb35-da04-49de-8e50-09847734c549" /> |
-
-## 🎚️ How to install
-
-To install application:
-1. Download .NET runtime from here https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-10.0.9-windows-x64-installer?cid=getdotnetcore
-2. Download .zip file from Releases tab unzip it and run Melodium.msi.
+| <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/ae5dd7d8-7df7-4179-b324-6c4bb7108543" /> | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/d5f4b13c-38db-4ee1-b523-7acc1b88d76c" /> |
 
 ## 🔐 How Login Works
 
