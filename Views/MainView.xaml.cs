@@ -343,11 +343,18 @@ public sealed partial class MainView : UserControl
             var noPlaylistsDialog = new ContentDialog
             {
                 Title = "Přidat do playlistu",
-                Content = "V knihovně nemáte žádné upravitelné playlisty, do kterých můžete přidávat skladby.",
-                CloseButtonText = "Zavřít",
+                Content = "V knihovně zatím nemáte žádné upravitelné playlisty. Chcete nyní vytvořit nový playlist na YouTube Music a přidat do něj tuto skladbu?",
+                PrimaryButtonText = "Vytvořit nový playlist",
+                CloseButtonText = "Zrušit",
+                DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.XamlRoot
             };
-            _ = noPlaylistsDialog.ShowAsync();
+
+            var askResult = await noPlaylistsDialog.ShowAsync();
+            if (askResult == ContentDialogResult.Primary)
+            {
+                await PromptCreatePlaylistAndAddSongAsync(song);
+            }
             return;
         }
 
@@ -381,6 +388,7 @@ public sealed partial class MainView : UserControl
             Title = "Přidat do playlistu",
             Content = stackPanel,
             PrimaryButtonText = "Přidat",
+            SecondaryButtonText = "Nový playlist",
             CloseButtonText = "Zrušit",
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = this.XamlRoot
@@ -391,6 +399,56 @@ public sealed partial class MainView : UserControl
         {
             await ViewModel.AddSongToPlaylistAsync(selectedPlaylist, song);
         }
+        else if (result == ContentDialogResult.Secondary)
+        {
+            await PromptCreatePlaylistAndAddSongAsync(song);
+        }
+    }
+
+    private async Task PromptCreatePlaylistAndAddSongAsync(SongModel? song = null)
+    {
+        if (ViewModel == null) return;
+
+        var inputPanel = new StackPanel { Spacing = 10 };
+        var titleBox = new TextBox 
+        { 
+            PlaceholderText = "Název playlistu",
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        var descBox = new TextBox 
+        { 
+            PlaceholderText = "Popis (volitelné)",
+            AcceptsReturn = false
+        };
+
+        inputPanel.Children.Add(new TextBlock { Text = "Zadejte název nového playlistu na YouTube Music:" });
+        inputPanel.Children.Add(titleBox);
+        inputPanel.Children.Add(descBox);
+
+        var createDialog = new ContentDialog
+        {
+            Title = "Nový playlist",
+            Content = inputPanel,
+            PrimaryButtonText = "Vytvořit",
+            CloseButtonText = "Zrušit",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var res = await createDialog.ShowAsync();
+        if (res == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(titleBox.Text))
+        {
+            var newPlaylist = await ViewModel.CreatePlaylistAsync(titleBox.Text.Trim(), descBox.Text?.Trim() ?? "");
+            if (newPlaylist != null && song != null)
+            {
+                await ViewModel.AddSongToPlaylistAsync(newPlaylist, song);
+            }
+        }
+    }
+
+    private async void OnCreatePlaylistClick(object sender, RoutedEventArgs e)
+    {
+        await PromptCreatePlaylistAndAddSongAsync(null);
     }
 
     private void OnAlbumContextOpenArtistClick(object sender, RoutedEventArgs e)

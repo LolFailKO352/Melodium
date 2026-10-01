@@ -45,6 +45,7 @@ public partial class App : Application
         services.AddSingleton<TranslationService>();
         services.AddSingleton<DiscordRpcService>();
         services.AddSingleton<LyricsService>();
+        services.AddSingleton<UpdateService>();
         services.AddSingleton<MainViewModel>();
         services.AddTransient<MainWindow>();
         Services = services.BuildServiceProvider();

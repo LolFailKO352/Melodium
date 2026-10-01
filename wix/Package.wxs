@@ -1,14 +1,70 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <?ifndef ProductVersion?>
+    <?define ProductVersion = "1.3.0.0" ?>
+  <?endif?>
+
   <Package Name="Melodium"
            Manufacturer="Deeemon"
-           Version="1.0.0.0"
+           Version="$(var.ProductVersion)"
            UpgradeCode="4F2B6699-317A-456E-857D-8F719E868D9A"
            Scope="perMachine"
            Codepage="65001">
     
-    <MajorUpgrade DowngradeErrorMessage="Novější verze aplikace Melodium je již nainstalována." />
+    <!-- Nastavení aktualizace: vyhledání a upgrade předchozích verzí -->
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  DowngradeErrorMessage="Novější verze aplikace Melodium je již nainstalována."
+                  AllowSameVersionUpgrades="yes" />
     
+    <!-- Bezpečné ukončení běžící instance Melodium před instalací či aktualizací -->
+    <util:CloseApplication Id="CloseMelodium"
+                           Target="Melodium.exe"
+                           CloseMessage="yes"
+                           Description="Probíhá bezpečné ukončení aplikace Melodium pro dokončení aktualizace..."
+                           RebootPrompt="no"
+                           TerminateProcess="1" />
+
+    <!-- Kontrola existence předchozí instalace v registru (HKLM) a zjištění verze -->
+    <Property Id="INSTALLED_VERSION_HKLM">
+      <RegistrySearch Id="SearchInstalledVerHKLM"
+                      Root="HKLM"
+                      Key="Software\Deeemon\Melodium"
+                      Name="Version"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+
+    <!-- Kontrola existence předchozí instalace v registru (HKCU) a zjištění verze -->
+    <Property Id="INSTALLED_VERSION_HKCU">
+      <RegistrySearch Id="SearchInstalledVerHKCU"
+                      Root="HKCU"
+                      Key="Software\Deeemon\Melodium"
+                      Name="Version"
+                      Type="raw" />
+    </Property>
+
+    <!-- Zjištění původního instalačního adresáře z registru -->
+    <Property Id="PREVIOUS_INSTALL_DIR">
+      <RegistrySearch Id="SearchPrevInstallDir"
+                      Root="HKLM"
+                      Key="Software\Deeemon\Melodium"
+                      Name="InstallDir"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+
+    <!-- Kontrola existence spustitelného souboru na disku -->
+    <Property Id="EXISTING_APP_FILE">
+      <DirectorySearch Id="SearchProgramFiles" Path="[ProgramFiles64Folder]Melodium">
+        <FileSearch Id="SearchMelodiumExe" Name="Melodium.exe" />
+      </DirectorySearch>
+    </Property>
+
+    <!-- Pokud byl nalezen existující instalační adresář, automaticky jej použijeme pro aktualizaci -->
+    <SetProperty Id="INSTALLFOLDER" Value="[PREVIOUS_INSTALL_DIR]" After="AppSearch" Condition="PREVIOUS_INSTALL_DIR" />
+
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="AppIcon" SourceFile="Resources\Raw\trayicon.ico" />
@@ -46,6 +102,20 @@
                   Target="[#MelodiumExe]"
                   WorkingDirectory="INSTALLFOLDER"
                   Icon="AppIcon" />
+      </Component>
+
+      <!-- Registrace informací o instalaci a verzi do registru pro budoucí kontroly a aktualizace -->
+      <Component Id="RegistryVersionInfo" Directory="INSTALLFOLDER" Guid="A3E87920-5612-4D3E-91C0-33E59C77521F">
+        <RegistryKey Root="HKLM" Key="Software\Deeemon\Melodium">
+          <RegistryValue Name="Installed" Type="integer" Value="1" />
+          <RegistryValue Name="Version" Type="string" Value="$(var.ProductVersion)" />
+          <RegistryValue Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Deeemon\Melodium">
+          <RegistryValue Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+          <RegistryValue Name="Version" Type="string" Value="$(var.ProductVersion)" />
+          <RegistryValue Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" />
+        </RegistryKey>
       </Component>
 
       <!-- Start Menu Folder Cleanup -->

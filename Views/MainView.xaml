@@ -111,8 +111,29 @@
                 <!-- Content Header with Global Search -->
                 <Grid RowDefinitions="Auto, *" Padding="24,8,24,0">
                     
-                    <!-- Top Bar: Search Box -->
-                    <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <!-- Top Bar: Search Box & Update Notification -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,20" Spacing="12">
+                        <InfoBar IsOpen="{x:Bind ViewModel.IsUpdateNotificationOpen, Mode=TwoWay}"
+                                 Severity="Informational"
+                                 Title="{x:Bind ViewModel.UpdateNotificationTitle, Mode=OneWay}"
+                                 Message="{x:Bind ViewModel.UpdateNotificationMessage, Mode=OneWay}"
+                                 IsClosable="True"
+                                 CornerRadius="8">
+                            <InfoBar.ActionButton>
+                                <Button Content="{x:Bind ViewModel.TextDownloadAndInstall, Mode=OneWay}"
+                                        Style="{ThemeResource AccentButtonStyle}"
+                                        Command="{x:Bind ViewModel.DownloadAndInstallUpdateCommand}"
+                                        IsEnabled="{x:Bind ViewModel.CanStartDownload, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.IsUpdateDownloading, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}" />
+                            </InfoBar.ActionButton>
+                            <InfoBar.Content>
+                                <StackPanel Spacing="6" Margin="0,8,0,0" Visibility="{x:Bind ViewModel.IsUpdateDownloading, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                    <ProgressBar Value="{x:Bind ViewModel.UpdateDownloadProgress, Mode=OneWay}" Maximum="100" Height="4" CornerRadius="2" />
+                                    <TextBlock Text="{x:Bind ViewModel.UpdateDownloadProgressText, Mode=OneWay}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </InfoBar.Content>
+                        </InfoBar>
+
                         <AutoSuggestBox
                             x:Name="SearchBox"
                             PlaceholderText="{x:Bind ViewModel.TextSearchPlaceholder, Mode=OneWay}"
@@ -123,7 +144,7 @@
                             HorizontalAlignment="Center"
                             Width="540"
                             CornerRadius="20" />
-                    </Grid>
+                    </StackPanel>
 
                     <!-- VIEWS CONTAINER -->
                     <Grid Grid.Row="1">
@@ -309,6 +330,13 @@
                                             <RadioButton Content="{x:Bind ViewModel.TextArtists, Mode=OneWay}" Tag="Artists" />
                                         </RadioButtons>
                                     </StackPanel>
+
+                                    <Button Grid.Column="1" HorizontalAlignment="Right" Click="OnCreatePlaylistClick" Visibility="{x:Bind ViewModel.LibraryTab, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Playlists'}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                            <TextBlock Text="Nový playlist" />
+                                        </StackPanel>
+                                    </Button>
                                 </Grid>
 
                                 <!-- Tab Contents -->
@@ -500,12 +528,135 @@
                                     </Grid>
                                 </Border>
 
+                                <!-- Application Updates Card -->
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                                    <StackPanel Spacing="16">
+                                        <!-- Header row -->
+                                        <Grid ColumnDefinitions="*, Auto">
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xE895;" FontSize="16" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                    <TextBlock Text="{x:Bind ViewModel.TextUpdateSettings, Mode=OneWay}" FontSize="16" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <TextBlock Text="{x:Bind ViewModel.TextCheckForUpdatesDesc, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <!-- Check for updates button -->
+                                            <Button Grid.Column="1"
+                                                    Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
+                                                    IsEnabled="{x:Bind ViewModel.CanStartUpdateCheck, Mode=OneWay}"
+                                                    VerticalAlignment="Center"
+                                                    Padding="16,8"
+                                                    CornerRadius="6">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                                                    <TextBlock Text="{x:Bind ViewModel.TextCheckForUpdates, Mode=OneWay}" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Version info pills -->
+                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                            <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{x:Bind ViewModel.TextCurrentVersionLabel, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                    <TextBlock Text="{x:Bind ViewModel.CurrentAppVersion, Mode=OneWay}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6"
+                                                    Visibility="{x:Bind ViewModel.LatestAppVersion, Mode=OneWay, Converter={StaticResource NullToVis}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{x:Bind ViewModel.TextLatestVersionLabel, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                                    <TextBlock Text="{x:Bind ViewModel.LatestAppVersion, Mode=OneWay}" FontWeight="Bold" FontSize="12" Foreground="#30D158" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- In-progress check indicator -->
+                                        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center"
+                                                    Visibility="{x:Bind ViewModel.IsUpdateCheckInProgress, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                            <ProgressRing IsActive="True" Width="20" Height="20" />
+                                            <TextBlock Text="{x:Bind ViewModel.TextCheckingForUpdates, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <!-- Up to date status -->
+                                        <Border Background="#1530D158" BorderBrush="#3030D158" BorderThickness="1" CornerRadius="6" Padding="12"
+                                                Visibility="{x:Bind ViewModel.IsUpToDate, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <FontIcon Glyph="&#xE73E;" FontSize="16" Foreground="#30D158" />
+                                                <TextBlock Text="{x:Bind ViewModel.TextAppUpToDate, Mode=OneWay}" FontWeight="SemiBold" FontSize="13" Foreground="#30D158" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Error status -->
+                                        <Border Background="#15FF453A" BorderBrush="#30FF453A" BorderThickness="1" CornerRadius="6" Padding="12"
+                                                Visibility="{x:Bind ViewModel.HasUpdateError, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <FontIcon Glyph="&#xE783;" FontSize="16" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                                <TextBlock Text="{x:Bind ViewModel.UpdateStatusMessage, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource SystemFillColorCriticalBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Update available panel -->
+                                        <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{StaticResource MelodiumAccentBrush}" BorderThickness="1" CornerRadius="8" Padding="16"
+                                                Visibility="{x:Bind ViewModel.IsUpdateAvailable, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                            <StackPanel Spacing="14">
+                                                <Grid ColumnDefinitions="*, Auto">
+                                                    <StackPanel Grid.Column="0" Spacing="4">
+                                                        <TextBlock Text="{x:Bind ViewModel.TextUpdateAvailable, Mode=OneWay}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                        <TextBlock Text="{x:Bind ViewModel.TextDownloadAndInstallDesc, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                        <Button Command="{x:Bind ViewModel.OpenUpdateOnGitHubCommand}" Padding="12,8" CornerRadius="6">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <FontIcon Glyph="&#xE8A7;" FontSize="13" />
+                                                                <TextBlock Text="{x:Bind ViewModel.TextOpenOnGitHub, Mode=OneWay}" FontSize="12" />
+                                                            </StackPanel>
+                                                        </Button>
+
+                                                        <Button Command="{x:Bind ViewModel.DownloadAndInstallUpdateCommand}"
+                                                                IsEnabled="{x:Bind ViewModel.CanStartDownload, Mode=OneWay}"
+                                                                Style="{ThemeResource AccentButtonStyle}"
+                                                                Padding="16,8"
+                                                                CornerRadius="6">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <FontIcon Glyph="&#xE896;" FontSize="14" />
+                                                                <TextBlock Text="{x:Bind ViewModel.TextDownloadAndInstall, Mode=OneWay}" FontWeight="SemiBold" FontSize="13" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- Release notes (if any) -->
+                                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6" Padding="12"
+                                                        Visibility="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay, Converter={StaticResource NullToVis}}">
+                                                    <StackPanel Spacing="6">
+                                                        <TextBlock Text="{x:Bind ViewModel.TextChangelogLabel, Mode=OneWay}" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                        <TextBlock Text="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay}" FontSize="12" TextWrapping="Wrap" MaxHeight="140" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <!-- Download progress bar -->
+                                                <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.IsUpdateDownloading, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                                    <Grid ColumnDefinitions="*, Auto">
+                                                        <TextBlock Text="{x:Bind ViewModel.TextDownloadingUpdate, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" />
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.UpdateDownloadProgressText, Mode=OneWay}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </Grid>
+                                                    <ProgressBar Value="{x:Bind ViewModel.UpdateDownloadProgress, Mode=OneWay}" Maximum="100" Height="6" CornerRadius="3" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- App Info Card -->
                                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
                                     <StackPanel Spacing="8">
                                         <TextBlock Text="Melodium" FontSize="16" FontWeight="SemiBold" />
                                         <TextBlock Text="Nativní WinUI 3 přehrávač pro Windows 11. Svižný, moderní a bez reklam." Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                                        <TextBlock Text="Verze 1.0 (Windows App SDK)" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="11" Margin="0,4,0,0" />
+                                        <TextBlock Text="{x:Bind ViewModel.AppVersionDisplay, Mode=OneWay}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="11" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -818,54 +969,72 @@
                                     <!-- Songs List -->
                                     <StackPanel Spacing="12">
                                         <TextBlock Text="Skladby v playlistu" FontSize="18" FontWeight="Bold" />
-                                        <ListView ItemsSource="{x:Bind ViewModel.CurrentPlaylistSongs, Mode=OneWay}"
-                                                  SelectionMode="None"
-                                                  IsItemClickEnabled="True"
-                                                  ItemClick="OnPlaylistSongItemClick">
-                                            <ListView.ItemTemplate>
+                                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.CurrentPlaylistSongs, Mode=OneWay}">
+                                            <ItemsRepeater.Layout>
+                                                <StackLayout Orientation="Vertical" Spacing="4" />
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
                                                 <DataTemplate x:DataType="models:SongModel">
-                                                    <Grid ColumnDefinitions="48, *, Auto" Margin="0,3" VerticalAlignment="Center">
-                                                        <Grid.ContextFlyout>
+                                                    <Button Style="{StaticResource MediaCardButtonStyle}"
+                                                            HorizontalAlignment="Stretch"
+                                                            HorizontalContentAlignment="Stretch"
+                                                            Tag="{x:Bind}" DataContext="{x:Bind}"
+                                                            Click="OnSongCardClick"
+                                                            Padding="12,8"
+                                                            CornerRadius="8"
+                                                            Margin="0,1">
+                                                        <Button.ContextFlyout>
                                                             <MenuFlyout>
                                                                 <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
                                                                 <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
                                                                 <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
                                                                 <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
                                                                 <MenuFlyoutSeparator />
                                                                 <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
                                                                 <MenuFlyoutSeparator Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                                                <MenuFlyoutItem Text="Posunout nahoru" Icon="Up" CommandParameter="{x:Bind}" Click="OnPlaylistSongMoveUpClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                                                <MenuFlyoutItem Text="Posunout dolů" Icon="Down" CommandParameter="{x:Bind}" Click="OnPlaylistSongMoveDownClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                <MenuFlyoutItem Text="Posunout nahoru" CommandParameter="{x:Bind}" Click="OnPlaylistSongMoveUpClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                                                    <MenuFlyoutItem.Icon>
+                                                                        <FontIcon Glyph="&#xE74A;" />
+                                                                    </MenuFlyoutItem.Icon>
+                                                                </MenuFlyoutItem>
+                                                                <MenuFlyoutItem Text="Posunout dolů" CommandParameter="{x:Bind}" Click="OnPlaylistSongMoveDownClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                                                    <MenuFlyoutItem.Icon>
+                                                                        <FontIcon Glyph="&#xE74B;" />
+                                                                    </MenuFlyoutItem.Icon>
+                                                                </MenuFlyoutItem>
                                                                 <MenuFlyoutItem Text="Odebrat z playlistu" Icon="Delete" CommandParameter="{x:Bind}" Click="OnPlaylistSongRemoveClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
                                                             </MenuFlyout>
-                                                        </Grid.ContextFlyout>
-                                                        <Border Grid.Column="0" CornerRadius="6">
-                                                            <Image Source="{x:Bind ThumbnailUrl}" Width="44" Height="44" Stretch="UniformToFill" />
-                                                        </Border>
-                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" MaxLines="1" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
-                                                        </StackPanel>
-
-                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Duration}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="{x:Bind Duration, Mode=OneWay, Converter={StaticResource NullToVis}}" />
-                                                            <!-- Reorder and remove buttons (only visible if CanEdit) -->
-                                                            <StackPanel Orientation="Horizontal" Spacing="2" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                                                                <Button Click="OnPlaylistSongMoveUpClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Posunout nahoru">
-                                                                    <FontIcon Glyph="&#xE74A;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                                </Button>
-                                                                <Button Click="OnPlaylistSongMoveDownClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Posunout dolů">
-                                                                    <FontIcon Glyph="&#xE74B;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                                </Button>
-                                                                <Button Click="OnPlaylistSongRemoveClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Odebrat z playlistu">
-                                                                    <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
-                                                                </Button>
+                                                        </Button.ContextFlyout>
+                                                        <Grid ColumnDefinitions="48, *, Auto" VerticalAlignment="Center">
+                                                            <Border Grid.Column="0" CornerRadius="6">
+                                                                <Image Source="{x:Bind ThumbnailUrl}" Width="44" Height="44" Stretch="UniformToFill" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
                                                             </StackPanel>
-                                                        </StackPanel>
-                                                    </Grid>
+
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Duration}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="{x:Bind Duration, Mode=OneWay, Converter={StaticResource NullToVis}}" />
+                                                                <!-- Reorder and remove buttons (only visible if CanEdit) -->
+                                                                <StackPanel Orientation="Horizontal" Spacing="2" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                                                    <Button Click="OnPlaylistSongMoveUpClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Posunout nahoru">
+                                                                        <FontIcon Glyph="&#xE74A;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                    </Button>
+                                                                    <Button Click="OnPlaylistSongMoveDownClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Posunout dolů">
+                                                                        <FontIcon Glyph="&#xE74B;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                    </Button>
+                                                                    <Button Click="OnPlaylistSongRemoveClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Odebrat z playlistu">
+                                                                        <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
                                                 </DataTemplate>
-                                            </ListView.ItemTemplate>
-                                        </ListView>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
                                     </StackPanel>
                                 </StackPanel>
                             </ScrollViewer>

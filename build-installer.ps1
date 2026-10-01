@@ -3,7 +3,7 @@
 param(
     [string]$Configuration = "Release",
     [string]$Architecture = "x64",
-    [string]$Version = "1.0.0.0"
+    [string]$Version = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,8 +15,26 @@ if (-not $ProjectDir) {
 }
 Set-Location $ProjectDir
 
+# Pokud verze nebyla zadána, získáme ji z Melodium.csproj
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    try {
+        [xml]$proj = Get-Content "$ProjectDir\Melodium.csproj"
+        $verNode = $proj.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+        if ($verNode) {
+            $parts = $verNode.Trim().Split('.')
+            while ($parts.Length -lt 4) { $parts += "0" }
+            $Version = ($parts[0..3] -join '.')
+        } else {
+            $Version = "1.3.0.0"
+        }
+    } catch {
+        $Version = "1.3.0.0"
+    }
+}
+
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "  Melodium MSI Installer Builder (WiX 4) " -ForegroundColor Cyan
+Write-Host "  Verze balíčku: $Version" -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 
 # 1. Kontrola / instalace WiX nástroje
@@ -27,8 +45,9 @@ if (-not (Get-Command wix -ErrorAction SilentlyContinue)) {
     Write-Host "[1/5] WiX Toolset je připraven." -ForegroundColor Green
 }
 
-# Ujistit se, že máme UI extension
+# Ujistit se, že máme UI a Util extensions
 wix extension add -g WixToolset.UI.wixext/4.0.6 2>$null
+wix extension add -g WixToolset.Util.wixext/4.0.6 2>$null
 
 # 2. Ukončit případně běžící instanci
 Write-Host "[2/5] Ukončuji běžící instance Melodium..." -ForegroundColor Yellow
@@ -69,7 +88,7 @@ Write-Host "[4/5] Generuji WiX komponenty souborů..." -ForegroundColor Yellow
 # 5. Zkompilovat finální MSI instalátor
 $outputMsi = "Melodium-Setup-$Architecture.msi"
 Write-Host "[5/5] Vytvářím finální MSI balíček: $outputMsi..." -ForegroundColor Yellow
-wix build -arch $Architecture "$ProjectDir\wix\Package.wxs" "$ProjectDir\wix\Files.wxs" -ext WixToolset.UI.wixext -o "$ProjectDir\$outputMsi"
+wix build -arch $Architecture "$ProjectDir\wix\Package.wxs" "$ProjectDir\wix\Files.wxs" -d ProductVersion=$Version -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -o "$ProjectDir\$outputMsi"
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Chyba při kompilaci WiX MSI balíčku!"
 }

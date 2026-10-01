@@ -1,8 +1,9 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Melodium.Models
 {
-    public class SongModel
+    public partial class SongModel : ObservableObject
     {
         public string VideoId { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
@@ -11,6 +12,9 @@ namespace Melodium.Models
         public string? ThumbnailUrl { get; set; }
         public string? Duration { get; set; }
         public string? SetVideoId { get; set; }
-        public bool CanEdit { get; set; }
+
+        [ObservableProperty]
+        public partial bool CanEdit { get; set; }
     }
 }
+

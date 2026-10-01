@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Melodium.Models;
 using Melodium.Services;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace Melodium.ViewModels;
 
@@ -17,6 +18,9 @@ public partial class MainViewModel : ObservableObject
     private readonly MelodiumService _ytService;
     private readonly IAudioService _audioService;
     private readonly TranslationService _translationService;
+    private readonly UpdateService _updateService;
+    private UpdateCheckResult? _lastUpdateResult;
+    private System.Threading.CancellationTokenSource? _updateDownloadCts;
     private System.Threading.CancellationTokenSource? _downloadCts;
     private readonly List<SongModel> _originalQueue = new();
 
@@ -96,6 +100,53 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string TextExitApp { get; set; } = "Ukončení aplikace";
     [ObservableProperty] public partial string TextExitAppDesc { get; set; } = "Zcela ukončí aplikaci Melodium a uvolní všechny procesy a prostředky na pozadí.";
     [ObservableProperty] public partial string TextExitButton { get; set; } = "Ukončit aplikaci";
+
+    // --- Aktualizace aplikace ---
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AppVersionDisplay))]
+    public partial string CurrentAppVersion { get; set; } = "1.3.0";
+
+    public string AppVersionDisplay => $"Verze {CurrentAppVersion} (Windows App SDK)";
+
+    [ObservableProperty] public partial string LatestAppVersion { get; set; } = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartUpdateCheck))]
+    public partial bool IsUpdateCheckInProgress { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartUpdateCheck))]
+    [NotifyPropertyChangedFor(nameof(CanStartDownload))]
+    public partial bool IsUpdateDownloading { get; set; }
+
+    public bool CanStartUpdateCheck => !IsUpdateCheckInProgress && !IsUpdateDownloading;
+    public bool CanStartDownload => !IsUpdateDownloading;
+
+    [ObservableProperty] public partial double UpdateDownloadProgress { get; set; }
+    [ObservableProperty] public partial string UpdateDownloadProgressText { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool IsUpdateAvailable { get; set; }
+    [ObservableProperty] public partial bool IsUpToDate { get; set; }
+    [ObservableProperty] public partial bool HasUpdateError { get; set; }
+    [ObservableProperty] public partial string UpdateStatusMessage { get; set; } = string.Empty;
+    [ObservableProperty] public partial string UpdateReleaseNotes { get; set; } = string.Empty;
+    [ObservableProperty] public partial string UpdateReleaseUrl { get; set; } = string.Empty;
+
+    [ObservableProperty] public partial bool IsUpdateNotificationOpen { get; set; }
+    [ObservableProperty] public partial string UpdateNotificationTitle { get; set; } = string.Empty;
+    [ObservableProperty] public partial string UpdateNotificationMessage { get; set; } = string.Empty;
+
+    [ObservableProperty] public partial string TextUpdateSettings { get; set; } = "Aktualizace aplikace";
+    [ObservableProperty] public partial string TextCheckForUpdates { get; set; } = "Zkontrolovat aktualizace";
+    [ObservableProperty] public partial string TextCheckForUpdatesDesc { get; set; } = "Zkontroluje dostupnost nejnovější verze aplikace Melodium na GitHubu.";
+    [ObservableProperty] public partial string TextCheckingForUpdates { get; set; } = "Ověřuji dostupnost nové verze...";
+    [ObservableProperty] public partial string TextAppUpToDate { get; set; } = "Melodium je aktuální. Máte nejnovější verzi.";
+    [ObservableProperty] public partial string TextUpdateAvailable { get; set; } = "Je k dispozici nová verze!";
+    [ObservableProperty] public partial string TextDownloadAndInstall { get; set; } = "Stáhnout a aktualizovat";
+    [ObservableProperty] public partial string TextDownloadAndInstallDesc { get; set; } = "Aplikace stáhne instalační balíček a spustí instalátor pro provedení aktualizace.";
+    [ObservableProperty] public partial string TextDownloadingUpdate { get; set; } = "Stahování aktualizace...";
+    [ObservableProperty] public partial string TextCurrentVersionLabel { get; set; } = "Nainstalovaná verze:";
+    [ObservableProperty] public partial string TextLatestVersionLabel { get; set; } = "Nejnovější verze na GitHubu:";
+    [ObservableProperty] public partial string TextChangelogLabel { get; set; } = "Přehled změn:";
+    [ObservableProperty] public partial string TextOpenOnGitHub { get; set; } = "Zobrazit na GitHubu";
     
     [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Hledat skladby, interprety, alba...";
     [ObservableProperty] public partial string TextLanguageDescription { get; set; } = "Vyberte preferovaný jazyk aplikace. Seznam obsahuje všechny dostupné světové jazyky.";
@@ -157,6 +208,19 @@ public partial class MainViewModel : ObservableObject
         { nameof(TextExitApp), "Ukončení aplikace" },
         { nameof(TextExitAppDesc), "Zcela ukončí aplikaci Melodium a uvolní všechny procesy a prostředky na pozadí." },
         { nameof(TextExitButton), "Ukončit aplikaci" },
+        { nameof(TextUpdateSettings), "Aktualizace aplikace" },
+        { nameof(TextCheckForUpdates), "Zkontrolovat aktualizace" },
+        { nameof(TextCheckForUpdatesDesc), "Zkontroluje dostupnost nejnovější verze aplikace Melodium na GitHubu." },
+        { nameof(TextCheckingForUpdates), "Ověřuji dostupnost nové verze..." },
+        { nameof(TextAppUpToDate), "Melodium je aktuální. Máte nejnovější verzi." },
+        { nameof(TextUpdateAvailable), "Je k dispozici nová verze!" },
+        { nameof(TextDownloadAndInstall), "Stáhnout a aktualizovat" },
+        { nameof(TextDownloadAndInstallDesc), "Aplikace stáhne instalační balíček a spustí instalátor pro provedení aktualizace." },
+        { nameof(TextDownloadingUpdate), "Stahování aktualizace..." },
+        { nameof(TextCurrentVersionLabel), "Nainstalovaná verze:" },
+        { nameof(TextLatestVersionLabel), "Nejnovější verze na GitHubu:" },
+        { nameof(TextChangelogLabel), "Přehled změn:" },
+        { nameof(TextOpenOnGitHub), "Zobrazit na GitHubu" },
         { nameof(TextLanguageSelection), "Výběr jazyka" },
         { nameof(TextSearchPlaceholder), "Hledat skladby, interprety, alba..." },
         { nameof(TextLanguageDescription), "Vyberte preferovaný jazyk aplikace. Seznam obsahuje všechny dostupné světové jazyky." },
@@ -231,6 +295,167 @@ public partial class MainViewModel : ObservableObject
     private void ExitApplication()
     {
         App.ExitApplication();
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync()
+    {
+        if (IsUpdateCheckInProgress || IsUpdateDownloading) return;
+
+        IsUpdateCheckInProgress = true;
+        HasUpdateError = false;
+        IsUpdateAvailable = false;
+        IsUpToDate = false;
+        UpdateStatusMessage = TextCheckingForUpdates;
+
+        try
+        {
+            var result = await _updateService.CheckForUpdatesAsync();
+            _lastUpdateResult = result;
+
+            if (!result.IsSuccess)
+            {
+                HasUpdateError = true;
+                UpdateStatusMessage = result.ErrorMessage ?? "Chyba při kontrole aktualizací.";
+            }
+            else
+            {
+                LatestAppVersion = result.LatestVersionTag ?? result.LatestVersion?.ToString() ?? "";
+                UpdateReleaseNotes = result.ReleaseNotes ?? string.Empty;
+                UpdateReleaseUrl = result.ReleaseUrl ?? string.Empty;
+
+                if (result.IsUpdateAvailable)
+                {
+                    IsUpdateAvailable = true;
+                    UpdateStatusMessage = $"{TextUpdateAvailable} ({LatestAppVersion})";
+
+                    UpdateNotificationTitle = $"K dispozici je nová verze {LatestAppVersion}";
+                    UpdateNotificationMessage = !string.IsNullOrWhiteSpace(result.ReleaseTitle) && result.ReleaseTitle != LatestAppVersion
+                        ? $"{result.ReleaseTitle} – kliknutím na tlačítko spustíte stažení a automatickou instalaci."
+                        : "Byla nalezena nová verze aplikace Melodium. Chcete ji nyní stáhnout a aktualizovat?";
+                    IsUpdateNotificationOpen = true;
+                }
+                else
+                {
+                    IsUpToDate = true;
+                    UpdateStatusMessage = $"{TextAppUpToDate} ({CurrentAppVersion})";
+                    IsUpdateNotificationOpen = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            HasUpdateError = true;
+            UpdateStatusMessage = $"Chyba: {ex.Message}";
+        }
+        finally
+        {
+            IsUpdateCheckInProgress = false;
+        }
+    }
+
+    public async Task CheckForUpdatesOnStartupAsync()
+    {
+        // Počkáme pár sekund po startu, aby aplikace hladce načetla rozhraní a knihovnu
+        await Task.Delay(4000);
+
+        try
+        {
+            var result = await _updateService.CheckForUpdatesAsync();
+            if (result != null && result.IsSuccess && result.IsUpdateAvailable)
+            {
+                _lastUpdateResult = result;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    LatestAppVersion = result.LatestVersionTag ?? result.LatestVersion?.ToString() ?? "";
+                    UpdateReleaseNotes = result.ReleaseNotes ?? string.Empty;
+                    UpdateReleaseUrl = result.ReleaseUrl ?? string.Empty;
+                    IsUpdateAvailable = true;
+                    UpdateStatusMessage = $"{TextUpdateAvailable} ({LatestAppVersion})";
+
+                    UpdateNotificationTitle = $"Dostupná nová verze {LatestAppVersion}";
+                    UpdateNotificationMessage = !string.IsNullOrWhiteSpace(result.ReleaseTitle) && result.ReleaseTitle != LatestAppVersion
+                        ? $"{result.ReleaseTitle} – kliknutím na tlačítko spustíte stažení a automatickou instalaci."
+                        : "Byla vydána nová verze aplikace Melodium. Chcete ji nyní stáhnout a aktualizovat?";
+                    IsUpdateNotificationOpen = true;
+                });
+            }
+        }
+        catch
+        {
+            // Tichá ignorace při chybě během startu (např. offline režim)
+        }
+    }
+
+    [RelayCommand]
+    public async Task DownloadAndInstallUpdateAsync()
+    {
+        if (IsUpdateDownloading) return;
+        if (_lastUpdateResult == null || string.IsNullOrWhiteSpace(_lastUpdateResult.DownloadUrl))
+        {
+            OpenUpdateOnGitHub();
+            return;
+        }
+
+        IsUpdateDownloading = true;
+        UpdateDownloadProgress = 0;
+        UpdateDownloadProgressText = "Příprava stahování...";
+        HasUpdateError = false;
+        UpdateStatusMessage = "Stahuji aktualizaci...";
+
+        _updateDownloadCts = new System.Threading.CancellationTokenSource();
+
+        var progress = new Progress<UpdateDownloadProgressInfo>(info =>
+        {
+            UpdateDownloadProgress = info.ProgressPercentage;
+            string receivedMb = (info.BytesReceived / 1024.0 / 1024.0).ToString("0.0");
+            string totalMb = info.TotalBytes > 0 ? (info.TotalBytes / 1024.0 / 1024.0).ToString("0.0") : "?";
+            UpdateDownloadProgressText = $"{info.ProgressPercentage:0.0} % ({receivedMb} MB / {totalMb} MB)";
+        });
+
+        try
+        {
+            string downloadedFile = await _updateService.DownloadUpdateAsync(
+                _lastUpdateResult.DownloadUrl,
+                _lastUpdateResult.DownloadFileName ?? "Melodium-Setup.msi",
+                progress,
+                _updateDownloadCts.Token);
+
+            UpdateStatusMessage = "Aktualizace stažena. Spouštím instalaci a restartuji aplikaci...";
+            UpdateDownloadProgressText = "100 % – Instaluji...";
+            await Task.Delay(400);
+
+            _updateService.LaunchInstallerAndExit(downloadedFile);
+        }
+        catch (OperationCanceledException)
+        {
+            IsUpdateDownloading = false;
+            UpdateStatusMessage = "Stahování aktualizace bylo zrušeno.";
+        }
+        catch (Exception ex)
+        {
+            HasUpdateError = true;
+            UpdateStatusMessage = $"Chyba při stahování aktualizace: {ex.Message}";
+            IsUpdateDownloading = false;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenUpdateOnGitHub()
+    {
+        try
+        {
+            string url = !string.IsNullOrWhiteSpace(UpdateReleaseUrl)
+                ? UpdateReleaseUrl
+                : "https://github.com/LolFailKO352/Melodium/releases";
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch { }
     }
 
     [ObservableProperty]
@@ -476,13 +701,16 @@ public partial class MainViewModel : ObservableObject
     private readonly DiscordRpcService _discordRpcService;
     private readonly LyricsService _lyricsService;
 
-    public MainViewModel(MelodiumService ytService, IAudioService audioService, TranslationService translationService, DiscordRpcService discordRpcService, LyricsService lyricsService)
+    public MainViewModel(MelodiumService ytService, IAudioService audioService, TranslationService translationService, DiscordRpcService discordRpcService, LyricsService lyricsService, UpdateService updateService)
     {
         _ytService = ytService;
         _audioService = audioService;
         _translationService = translationService;
         _discordRpcService = discordRpcService;
         _lyricsService = lyricsService;
+        _updateService = updateService;
+
+        CurrentAppVersion = UpdateService.GetCurrentVersionDisplay();
 
         IsDiscordRpcEnabled = Preferences.Default.Get("IsDiscordRpcEnabled", false);
         IsCloseToTrayEnabled = Preferences.Default.Get("IsCloseToTrayEnabled", true);
@@ -516,6 +744,9 @@ public partial class MainViewModel : ObservableObject
 
         // Načteme uložené přihlášení při startu
         _ = Task.Run(LoadSavedSessionAsync);
+
+        // Zkontrolujeme dostupnost aktualizací na pozadí při startu
+        _ = Task.Run(CheckForUpdatesOnStartupAsync);
     }
 
     private void OnAudioPositionChanged(TimeSpan position, TimeSpan duration)
@@ -825,10 +1056,52 @@ public partial class MainViewModel : ObservableObject
     public void UpdateEditablePlaylists()
     {
         EditablePlaylists.Clear();
-        foreach (var p in LibraryPlaylists.Where(p => p.CanEdit))
+        foreach (var p in LibraryPlaylists.Where(p => p.CanEdit || _ytService.IsUserCreator(p.Creator) || (!string.IsNullOrEmpty(UserProfileName) && UserProfileName != "Nepřihlášen" && UserProfileName != "Můj účet" && string.Equals(p.Creator, UserProfileName, StringComparison.OrdinalIgnoreCase))))
         {
+            p.CanEdit = true;
             EditablePlaylists.Add(p);
         }
+    }
+
+    public async Task<PlaylistModel?> CreatePlaylistAsync(string title, string description = "")
+    {
+        if (string.IsNullOrWhiteSpace(title)) return null;
+
+        StatusMessage = $"Vytvářím playlist '{title}' na YouTube Music...";
+        try
+        {
+            string? playlistId = await _ytService.CreatePlaylistAsync(title, description);
+            if (!string.IsNullOrEmpty(playlistId))
+            {
+                var newPlaylist = new PlaylistModel
+                {
+                    Id = playlistId,
+                    Title = title,
+                    Description = description,
+                    Creator = !string.IsNullOrEmpty(UserProfileName) && UserProfileName != "Nepřihlášen" && UserProfileName != "Můj účet" ? UserProfileName : "Vy",
+                    CanEdit = true,
+                    SongCount = 0
+                };
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    LibraryPlaylists.Insert(0, newPlaylist);
+                    UpdateEditablePlaylists();
+                });
+
+                StatusMessage = $"Playlist '{title}' byl úspěšně vytvořen na YouTube Music.";
+                return newPlaylist;
+            }
+            else
+            {
+                StatusMessage = "Vytvoření playlistu na YouTube Music se nezdařilo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Chyba při vytváření playlistu: {ex.Message}";
+        }
+        return null;
     }
 
     [RelayCommand]
@@ -842,50 +1115,74 @@ public partial class MainViewModel : ObservableObject
 
         if (playlist == null) return;
 
-        if (CurrentView != "Playlist")
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            _previousView = CurrentView;
-        }
+            if (CurrentView != "Playlist")
+            {
+                _previousView = CurrentView;
+            }
 
-        CurrentView = "Playlist";
-        CurrentPlaylist = playlist;
-        CurrentPlaylistSongs.Clear();
-        IsPlaylistLoading = true;
-        StatusMessage = $"Načítám playlist {playlist.Title}...";
+            CurrentView = "Playlist";
+            CurrentPlaylist = playlist;
+            CurrentPlaylistSongs.Clear();
+            IsPlaylistLoading = true;
+            StatusMessage = $"Načítám playlist {playlist.Title}...";
+        });
 
         try
         {
             var details = await _ytService.GetPlaylistDetailsAsync(playlist.Id);
-            if (details != null)
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                if (details.Playlist != null)
+                try
                 {
-                    if (!string.IsNullOrWhiteSpace(details.Playlist.Title)) playlist.Title = details.Playlist.Title;
-                    if (!string.IsNullOrWhiteSpace(details.Playlist.ThumbnailUrl)) playlist.ThumbnailUrl = details.Playlist.ThumbnailUrl;
-                    if (!string.IsNullOrWhiteSpace(details.Playlist.Creator)) playlist.Creator = details.Playlist.Creator;
-                    playlist.SongCount = details.Songs.Count;
-                    playlist.Description = details.Playlist.Description;
-                    playlist.CanEdit = details.Playlist.CanEdit;
-                    playlist.IsCollaborative = details.Playlist.IsCollaborative;
-                }
+                    if (details != null)
+                    {
+                        if (details.Playlist != null)
+                        {
+                            if (!string.IsNullOrWhiteSpace(details.Playlist.Title)) playlist.Title = details.Playlist.Title;
+                            if (!string.IsNullOrWhiteSpace(details.Playlist.ThumbnailUrl)) playlist.ThumbnailUrl = details.Playlist.ThumbnailUrl;
+                            if (!string.IsNullOrWhiteSpace(details.Playlist.Creator)) playlist.Creator = details.Playlist.Creator;
+                            playlist.SongCount = details.Songs.Count;
+                            playlist.Description = details.Playlist.Description;
+                            playlist.CanEdit = details.Playlist.CanEdit;
+                            playlist.IsCollaborative = details.Playlist.IsCollaborative;
+                        }
 
-                CurrentPlaylistSongs.Clear();
-                foreach (var song in details.Songs)
+                        CurrentPlaylistSongs.Clear();
+                        foreach (var song in details.Songs)
+                        {
+                            CurrentPlaylistSongs.Add(song);
+                        }
+
+                        UpdateEditablePlaylists();
+                        StatusMessage = $"Playlist '{playlist.Title}' načten ({CurrentPlaylistSongs.Count} skladeb).";
+                    }
+                    else
+                    {
+                        StatusMessage = $"Playlist '{playlist.Title}' se nepodařilo načíst.";
+                    }
+                }
+                catch (Exception ex)
                 {
-                    CurrentPlaylistSongs.Add(song);
+                    CrashLoggerService.LogCrash(ex, "OpenPlaylistAsync.UIUpdate");
+                    StatusMessage = $"Chyba při zobrazení skladeb: {ex.Message}";
                 }
-
-                UpdateEditablePlaylists();
-                StatusMessage = $"Playlist '{playlist.Title}' načten ({CurrentPlaylistSongs.Count} skladeb).";
-            }
+            });
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Chyba při načítání playlistu: {ex.Message}";
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                StatusMessage = $"Chyba při načítání playlistu: {ex.Message}";
+            });
         }
         finally
         {
-            IsPlaylistLoading = false;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsPlaylistLoading = false;
+            });
         }
     }
 
@@ -1546,11 +1843,27 @@ public partial class MainViewModel : ObservableObject
 
     public async Task LoadLibraryAsync()
     {
-        IsBusy = true;
-        StatusMessage = "Načítám domovskou obrazovku a knihovnu z Melodium...";
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            IsBusy = true;
+            StatusMessage = "Načítám domovskou obrazovku a knihovnu z Melodium...";
+        });
         try
         {
             await _ytService.EnsureInitializedAsync();
+
+            try
+            {
+                var profile = await _ytService.GetAccountProfileAsync();
+                if (!string.IsNullOrEmpty(profile.Name))
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        UserProfileName = profile.Name;
+                    });
+                }
+            }
+            catch { }
             
             _ = Task.Run(LoadHomeRecommendationsAsync);
             
@@ -1582,11 +1895,17 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Chyba při stahování knihovny: {ex.Message}";
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                StatusMessage = $"Chyba při stahování knihovny: {ex.Message}";
+            });
         }
         finally
         {
-            IsBusy = false;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsBusy = false;
+            });
         }
     }
 
