@@ -104,7 +104,7 @@ public partial class MainViewModel : ObservableObject
     // --- Aktualizace aplikace ---
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AppVersionDisplay))]
-    public partial string CurrentAppVersion { get; set; } = "1.3.0";
+    public partial string CurrentAppVersion { get; set; } = "1.4.0";
 
     public string AppVersionDisplay => $"Verze {CurrentAppVersion} (Windows App SDK)";
 
