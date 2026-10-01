@@ -16,6 +16,9 @@
             x:Name="TrayIcon"
             ToolTipText="Melodium"
             IconSource="Resources/Raw/trayicon.ico"
+            MenuActivation="RightClick"
+            ContextMenuMode="SecondWindow"
+            DoubleClickCommand="{x:Bind ToggleWindowVisibilityCommand}"
             LeftClickCommand="{x:Bind ToggleWindowVisibilityCommand}">
             <tb:TaskbarIcon.ContextFlyout>
                 <MenuFlyout>

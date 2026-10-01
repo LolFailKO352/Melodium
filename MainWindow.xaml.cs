@@ -27,14 +27,13 @@ public sealed partial class MainWindow : Window
         // Window size
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
 
-        // Close to tray logic (if debugging in Visual Studio, exit on close to release files)
+        // Close to tray logic
         AppWindow.Closing += (s, e) =>
         {
-            if (System.Diagnostics.Debugger.IsAttached || App.IsExiting)
+            if (System.Diagnostics.Debugger.IsAttached || App.IsExiting || !ViewModel.IsCloseToTrayEnabled)
             {
-                App.IsExiting = true;
-                TrayIcon?.Dispose();
-                Application.Current.Exit();
+                e.Cancel = true;
+                App.ExitApplication();
             }
             else
             {
@@ -46,6 +45,15 @@ public sealed partial class MainWindow : Window
         // Initialize session and recommendations
         _ = ViewModel.LoadSavedSessionAsync();
         _ = ViewModel.LoadHomeRecommendationsAsync();
+    }
+
+    public void DisposeTrayIcon()
+    {
+        try
+        {
+            TrayIcon?.Dispose();
+        }
+        catch { }
     }
 
     public void ToggleWindowVisibility()
@@ -73,8 +81,6 @@ public sealed partial class MainWindow : Window
 
     private void OnTrayExitClick(object sender, RoutedEventArgs e)
     {
-        App.IsExiting = true;
-        TrayIcon.Dispose();
-        Application.Current.Exit();
+        App.ExitApplication();
     }
 }

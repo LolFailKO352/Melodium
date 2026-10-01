@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Melodium.Models
 {
@@ -11,5 +9,8 @@ namespace Melodium.Models
         public string Artist { get; set; } = string.Empty;
         public string? ArtistId { get; set; }
         public string? ThumbnailUrl { get; set; }
+        public string? Duration { get; set; }
+        public string? SetVideoId { get; set; }
+        public bool CanEdit { get; set; }
     }
 }

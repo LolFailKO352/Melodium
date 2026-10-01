@@ -85,10 +85,21 @@
                 </NavigationView.MenuItems>
 
                 <NavigationView.FooterMenuItems>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextAccount, Mode=OneWay}" Tag="Login">
+                    <NavigationViewItem x:Name="AccountNavItem"
+                                        Content="{x:Bind ViewModel.TextAccount, Mode=OneWay}"
+                                        Tag="Login"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.UserAccountTooltip, Mode=OneWay}">
                         <NavigationViewItem.Icon>
                             <FontIcon Glyph="&#xE77B;" />
                         </NavigationViewItem.Icon>
+                        <NavigationViewItem.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="{x:Bind ViewModel.UserProfileName, Mode=OneWay}" IsEnabled="False" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                <MenuFlyoutSeparator Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                <MenuFlyoutItem Text="{x:Bind ViewModel.TextLogout, Mode=OneWay}" Icon="Cancel" Command="{x:Bind ViewModel.LogoutCommand}" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                <MenuFlyoutItem Text="Přihlásit se" Icon="Contact" Click="OnGoToLoginClick" Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                            </MenuFlyout>
+                        </NavigationViewItem.ContextFlyout>
                     </NavigationViewItem>
                     <NavigationViewItem Content="{x:Bind ViewModel.TextSettings, Mode=OneWay}" Tag="Settings">
                         <NavigationViewItem.Icon>
@@ -100,37 +111,18 @@
                 <!-- Content Header with Global Search -->
                 <Grid RowDefinitions="Auto, *" Padding="24,8,24,0">
                     
-                    <!-- Top Bar: Search Box and Profile -->
-                    <Grid Grid.Row="0" Margin="0,0,0,20" ColumnDefinitions="*, Auto">
+                    <!-- Top Bar: Search Box -->
+                    <Grid Grid.Row="0" Margin="0,0,0,20">
                         <AutoSuggestBox
                             x:Name="SearchBox"
-                            Grid.Column="0"
                             PlaceholderText="{x:Bind ViewModel.TextSearchPlaceholder, Mode=OneWay}"
                             Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
                             QueryIcon="Find"
                             QuerySubmitted="SearchBox_QuerySubmitted"
                             TextChanged="SearchBox_TextChanged"
                             HorizontalAlignment="Center"
-                            Width="480"
+                            Width="540"
                             CornerRadius="20" />
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <!-- Logged In state -->
-                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="16" Padding="8,4" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <PersonPicture DisplayName="{x:Bind ViewModel.UserProfileName, Mode=OneWay}" Width="24" Height="24" />
-                                    <TextBlock Text="{x:Bind ViewModel.UserProfileName, Mode=OneWay}" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Margin="0,0,4,0" />
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Not Logged In subtle button -->
-                            <Button Click="OnGoToLoginClick" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="14" Padding="10,5" Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                    <FontIcon Glyph="&#xE77B;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock Text="{x:Bind ViewModel.TextAccount, Mode=OneWay}" FontSize="12" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
                     </Grid>
 
                     <!-- VIEWS CONTAINER -->
@@ -156,6 +148,7 @@
                                                             <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
                                                             <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
                                                             <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
                                                             <MenuFlyoutSeparator />
                                                             <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
                                                         </MenuFlyout>
@@ -194,6 +187,7 @@
                                                             <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
                                                             <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
                                                             <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
                                                             <MenuFlyoutSeparator />
                                                             <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
                                                         </MenuFlyout>
@@ -257,6 +251,7 @@
                                                             <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
                                                             <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
                                                             <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
                                                             <MenuFlyoutSeparator />
                                                             <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
                                                         </MenuFlyout>
@@ -333,6 +328,7 @@
                                                             <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
                                                             <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
                                                             <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
                                                             <MenuFlyoutSeparator />
                                                             <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
                                                         </MenuFlyout>
@@ -361,6 +357,7 @@
                                                     <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnPlaylistCardClick">
                                                         <Button.ContextFlyout>
                                                             <MenuFlyout>
+                                                                <MenuFlyoutItem Text="Otevřít playlist" Icon="Folder" CommandParameter="{x:Bind}" Click="OnPlaylistCardClick" />
                                                                 <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnPlaylistContextPlayClick" />
                                                             </MenuFlyout>
                                                         </Button.ContextFlyout>
@@ -371,7 +368,10 @@
                                                             <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                                                                 <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
                                                                 <TextBlock Text="{x:Bind Creator}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" Margin="0,2,0,0" />
-                                                                <TextBlock Text="{x:Bind SongCount}" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontSize="11" Margin="0,2,0,0" />
+                                                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,0">
+                                                                    <TextBlock Text="{x:Bind SongCount}" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontSize="11" />
+                                                                    <TextBlock Text="• Upravitelný" Foreground="{ThemeResource SystemFillColorSuccessBrush}" FontSize="10" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                </StackPanel>
                                                             </StackPanel>
                                                         </Grid>
                                                     </Button>
@@ -469,6 +469,37 @@
                                     </Grid>
                                 </Border>
 
+                                <!-- Close to tray Card -->
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock Text="{x:Bind ViewModel.TextCloseToTray, Mode=OneWay}" FontSize="16" FontWeight="SemiBold" />
+                                            <TextBlock Text="{x:Bind ViewModel.TextCloseToTrayDesc, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.IsCloseToTrayEnabled, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Exit App Card -->
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock Text="{x:Bind ViewModel.TextExitApp, Mode=OneWay}" FontSize="16" FontWeight="SemiBold" />
+                                            <TextBlock Text="{x:Bind ViewModel.TextExitAppDesc, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Command="{x:Bind ViewModel.ExitApplicationCommand}"
+                                                VerticalAlignment="Center"
+                                                Padding="16,8"
+                                                CornerRadius="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE711;" FontSize="14" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                                <TextBlock Text="{x:Bind ViewModel.TextExitButton, Mode=OneWay}" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
                                 <!-- App Info Card -->
                                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
                                     <StackPanel Spacing="8">
@@ -480,17 +511,21 @@
                             </StackPanel>
                         </ScrollViewer>
 
-                        <!-- VIEW: LOGIN (WEBVIEW2) -->
-                        <Grid Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Login'}" RowDefinitions="Auto, *">
-                            <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{x:Bind ViewModel.TextLoginInstructions, Mode=OneWay}" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock Text="{x:Bind ViewModel.TextLoginInstruction1, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                                    <TextBlock Text="{x:Bind ViewModel.TextLoginInstruction2, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                        <!-- VIEW: LOGIN -->
+                        <Grid Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Login'}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" MaxWidth="520">
+                                <Border Width="72" Height="72" CornerRadius="36" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" HorizontalAlignment="Center">
+                                    <FontIcon Glyph="&#xE77B;" FontSize="32" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="Přihlášení k YouTube Music" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+                                <TextBlock Text="Přihlaste se ke svému Google účtu v samostatném okně pro přístup k osobním playlistům, oblíbeným skladbám a vlastním doporučením."
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" />
+                                
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,10,0,0">
+                                    <Button Content="Otevřít přihlašovací okno" Style="{ThemeResource AccentButtonStyle}" Padding="20,10" CornerRadius="20" Click="OnGoToLoginClick" />
+                                    <Button Content="Vložit cookies ručně" Padding="20,10" CornerRadius="20" Click="OnMainViewManualCookieClick" />
                                 </StackPanel>
-                            </Border>
-
-                            <WebView2 Grid.Row="1" x:Name="LoginWebView" Source="https://music.youtube.com/" NavigationCompleted="LoginWebView_NavigationCompleted" />
+                            </StackPanel>
                         </Grid>
 
                         <!-- VIEW: ARTIST PAGE -->
@@ -570,6 +605,7 @@
                                                                 <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
                                                                 <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
                                                                 <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
                                                                 <MenuFlyoutSeparator />
                                                                 <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
                                                             </MenuFlyout>
@@ -656,20 +692,199 @@
                             </ScrollViewer>
                         </Grid>
 
+                        <!-- VIEW: PLAYLIST PAGE -->
+                        <Grid Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Playlist'}" RowDefinitions="Auto, *">
+                            <ProgressBar Grid.Row="0" IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsPlaylistLoading, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" Margin="0,0,0,16" />
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Spacing="24" Padding="0,0,0,40">
+                                    
+                                    <!-- Back button -->
+                                    <Button Click="OnPlaylistBackClick" Background="Transparent" BorderBrush="Transparent" Padding="8,4" CornerRadius="6" HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE72B;" FontSize="13" />
+                                            <TextBlock Text="Zpět" FontSize="13" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Playlist Hero Header -->
+                                    <Grid ColumnDefinitions="Auto, *" Margin="0,4,0,0">
+                                        <!-- Playlist Cover -->
+                                        <Border Grid.Column="0" CornerRadius="12" Width="140" Height="140" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                            <Image Source="{x:Bind ViewModel.CurrentPlaylist.ThumbnailUrl, Mode=OneWay}" Stretch="UniformToFill" Width="140" Height="140" />
+                                        </Border>
+
+                                        <!-- Info & Actions -->
+                                        <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center" Spacing="8">
+                                            <!-- Permission Badge -->
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Border Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                                                        BorderBrush="{ThemeResource SystemFillColorSuccessBrush}"
+                                                        BorderThickness="1" CornerRadius="12" Padding="10,3"
+                                                        Visibility="{x:Bind ViewModel.CurrentPlaylist.CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <FontIcon Glyph="&#xE70F;" FontSize="11" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                                        <TextBlock Text="Upravitelný playlist" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                        BorderThickness="1" CornerRadius="12" Padding="10,3"
+                                                        Visibility="{x:Bind ViewModel.CurrentPlaylist.CanEdit, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                        <FontIcon Glyph="&#xE72E;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                        <TextBlock Text="Sdílený playlist • Pouze ke čtení" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- Title -->
+                                            <TextBlock Text="{x:Bind ViewModel.CurrentPlaylist.Title, Mode=OneWay}" FontSize="32" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="2" />
+
+                                            <!-- Creator & Count -->
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{x:Bind ViewModel.CurrentPlaylist.Creator, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" />
+                                                <TextBlock Text="•" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="13" />
+                                                <TextBlock Text="{x:Bind ViewModel.CurrentPlaylist.SongCount, Mode=OneWay}" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="skladby" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" />
+                                            </StackPanel>
+
+                                            <!-- Description -->
+                                            <TextBlock Text="{x:Bind ViewModel.CurrentPlaylist.Description, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" MaxLines="2" TextTrimming="CharacterEllipsis" Visibility="{x:Bind ViewModel.CurrentPlaylist.Description, Mode=OneWay, Converter={StaticResource NullToVis}}" />
+
+                                            <!-- Actions -->
+                                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
+                                                <Button Command="{x:Bind ViewModel.PlayCurrentPlaylistCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="18,8" CornerRadius="20">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                                        <TextBlock Text="Přehrát vše" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <Button Command="{x:Bind ViewModel.ShuffleCurrentPlaylistCommand}" Padding="18,8" CornerRadius="20">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <FontIcon Glyph="&#xE8B1;" FontSize="14" />
+                                                        <TextBlock Text="Zamíchat" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <!-- Add Song button (only when editable) -->
+                                                <Button Padding="18,8" CornerRadius="20"
+                                                        Visibility="{x:Bind ViewModel.CurrentPlaylist.CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                                                        ToolTipService.ToolTip="Hledat a přidat skladbu">
+                                                    <Button.Flyout>
+                                                        <Flyout Placement="BottomEdgeAlignedLeft">
+                                                            <StackPanel Width="360" Spacing="12" Padding="6">
+                                                                <TextBlock Text="Přidat skladbu do playlistu" FontWeight="SemiBold" FontSize="14" />
+                                                                <AutoSuggestBox x:Name="AddSongSearchBox"
+                                                                                PlaceholderText="Hledat skladbu na YouTube Music..."
+                                                                                QueryIcon="Find"
+                                                                                QuerySubmitted="OnAddSongSearchSubmitted"
+                                                                                TextChanged="OnAddSongSearchTextChanged" />
+                                                                <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsSearchingSongsToAdd, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="2" />
+                                                                <ListView ItemsSource="{x:Bind ViewModel.PlaylistSearchResults, Mode=OneWay}"
+                                                                          MaxHeight="260"
+                                                                          SelectionMode="None"
+                                                                          IsItemClickEnabled="True"
+                                                                          ItemClick="OnSearchResultItemClick">
+                                                                    <ListView.ItemTemplate>
+                                                                        <DataTemplate x:DataType="models:SongModel">
+                                                                            <Grid ColumnDefinitions="36, *, Auto" Margin="0,3">
+                                                                                <Border Grid.Column="0" CornerRadius="4">
+                                                                                    <Image Source="{x:Bind ThumbnailUrl}" Width="36" Height="36" Stretch="UniformToFill" />
+                                                                                </Border>
+                                                                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                                                    <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                                    <TextBlock Text="{x:Bind Artist}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                                </StackPanel>
+                                                                                <FontIcon Grid.Column="2" Glyph="&#xE710;" FontSize="12" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                                                                            </Grid>
+                                                                        </DataTemplate>
+                                                                    </ListView.ItemTemplate>
+                                                                </ListView>
+                                                            </StackPanel>
+                                                        </Flyout>
+                                                    </Button.Flyout>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                                        <TextBlock Text="Přidat skladbu" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Songs List -->
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Skladby v playlistu" FontSize="18" FontWeight="Bold" />
+                                        <ListView ItemsSource="{x:Bind ViewModel.CurrentPlaylistSongs, Mode=OneWay}"
+                                                  SelectionMode="None"
+                                                  IsItemClickEnabled="True"
+                                                  ItemClick="OnPlaylistSongItemClick">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate x:DataType="models:SongModel">
+                                                    <Grid ColumnDefinitions="48, *, Auto" Margin="0,3" VerticalAlignment="Center">
+                                                        <Grid.ContextFlyout>
+                                                            <MenuFlyout>
+                                                                <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
+                                                                <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
+                                                                <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
+                                                                <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                <MenuFlyoutSeparator />
+                                                                <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
+                                                                <MenuFlyoutSeparator Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                <MenuFlyoutItem Text="Posunout nahoru" Icon="Up" CommandParameter="{x:Bind}" Click="OnPlaylistSongMoveUpClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                <MenuFlyoutItem Text="Posunout dolů" Icon="Down" CommandParameter="{x:Bind}" Click="OnPlaylistSongMoveDownClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                <MenuFlyoutItem Text="Odebrat z playlistu" Icon="Delete" CommandParameter="{x:Bind}" Click="OnPlaylistSongRemoveClick" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                            </MenuFlyout>
+                                                        </Grid.ContextFlyout>
+                                                        <Border Grid.Column="0" CornerRadius="6">
+                                                            <Image Source="{x:Bind ThumbnailUrl}" Width="44" Height="44" Stretch="UniformToFill" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" MaxLines="1" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Duration}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" Visibility="{x:Bind Duration, Mode=OneWay, Converter={StaticResource NullToVis}}" />
+                                                            <!-- Reorder and remove buttons (only visible if CanEdit) -->
+                                                            <StackPanel Orientation="Horizontal" Spacing="2" Visibility="{x:Bind CanEdit, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                                                <Button Click="OnPlaylistSongMoveUpClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Posunout nahoru">
+                                                                    <FontIcon Glyph="&#xE74A;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                </Button>
+                                                                <Button Click="OnPlaylistSongMoveDownClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Posunout dolů">
+                                                                    <FontIcon Glyph="&#xE74B;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                                </Button>
+                                                                <Button Click="OnPlaylistSongRemoveClick" Tag="{x:Bind}" Background="Transparent" BorderBrush="Transparent" Width="30" Height="30" Padding="0" CornerRadius="15" ToolTipService.ToolTip="Odebrat z playlistu">
+                                                                    <FontIcon Glyph="&#xE74D;" FontSize="11" Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                                                </Button>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
                     </Grid>
                 </Grid>
             </NavigationView>
         </Grid>
 
-        <!-- Bottom Section: Native Modern Floating Player Bar -->
+        <!-- Bottom Section: Native Modern Docked Player Bar -->
         <Grid Grid.Row="2"
-              Height="92"
-              Margin="16,0,16,16"
+              Height="90"
+              Margin="0"
               Background="{ThemeResource LayerFillColorDefaultBrush}"
               BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1"
-              CornerRadius="12"
-              Padding="16,8">
+              BorderThickness="0,1,0,0"
+              CornerRadius="0"
+              Padding="20,8">
             
             <Grid ColumnDefinitions="280, *, 240">
                 

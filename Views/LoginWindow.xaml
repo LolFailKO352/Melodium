@@ -1,0 +1,50 @@
+<Window
+    x:Class="Melodium.Views.LoginWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Přihlášení k YouTube Music">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt" />
+    </Window.SystemBackdrop>
+
+    <Grid RowDefinitions="Auto, *">
+        <!-- Top Custom Title Bar -->
+        <Grid Grid.Row="0" x:Name="AppTitleBar" Height="48" Padding="16,0" Background="{ThemeResource LayerFillColorDefaultBrush}" ColumnDefinitions="Auto, *, Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Image Source="Resources/Raw/trayicon.png" Width="20" Height="20" VerticalAlignment="Center" />
+                <TextBlock Text="Přihlášení k YouTube Music" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Content="Vložit cookies ručně" Click="OnManualCookieClick" Style="{ThemeResource DefaultButtonStyle}" FontSize="12" Padding="10,4" CornerRadius="6" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Body -->
+        <Grid Grid.Row="1">
+            <WebView2 x:Name="LoginWebView" NavigationCompleted="LoginWebView_NavigationCompleted" />
+
+            <!-- Loading Overlay -->
+            <Grid x:Name="LoadingPanel" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Visibility="Visible">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+                    <ProgressRing x:Name="LoadingRing" IsActive="True" Width="48" Height="48" />
+                    <TextBlock x:Name="LoadingStatusText" Text="Načítám přihlašovací stránku..." FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Error State Panel -->
+            <Grid x:Name="ErrorPanel" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Visibility="Collapsed" Padding="32">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="520">
+                    <FontIcon Glyph="&#xE783;" FontSize="48" Foreground="{ThemeResource SystemFillColorCautionBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Nepodařilo se spustit vestavěný prohlížeč" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" TextAlignment="Center" />
+                    <TextBlock x:Name="ErrorMessageText" Text="Na tomto zařízení pravděpodobně chybí komponenta Microsoft Edge WebView2 Runtime, nebo aplikace nemá oprávnění k vytvoření datového profilu." Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" Margin="0,8,0,0">
+                        <Button Content="Stáhnout WebView2 Runtime" Style="{ThemeResource AccentButtonStyle}" Click="OnDownloadWebView2Click" />
+                        <Button Content="Vložit cookies ručně" Click="OnManualCookieClick" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,13 +1,31 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Melodium.Models
 {
-    public class PlaylistModel
+    public partial class PlaylistModel : ObservableObject
     {
         public string Id { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string? ThumbnailUrl { get; set; }
-        public int SongCount { get; set; }
-        public string Creator { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string Title { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string? ThumbnailUrl { get; set; }
+
+        [ObservableProperty]
+        public partial int SongCount { get; set; }
+
+        [ObservableProperty]
+        public partial string Creator { get; set; } = string.Empty;
+
+        [ObservableProperty]
+        public partial string? Description { get; set; }
+
+        [ObservableProperty]
+        public partial bool CanEdit { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsCollaborative { get; set; }
     }
 }

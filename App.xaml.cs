@@ -15,16 +15,25 @@ public partial class App : Application
 
     public App()
     {
+        CrashLoggerService.Initialize();
+
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var webViewFolder = Path.Combine(localAppData, "Melodium", "WebView2");
+            Directory.CreateDirectory(webViewFolder);
+            Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", webViewFolder);
+        }
+        catch (Exception ex)
+        {
+            CrashLoggerService.LogCrash(ex, "App.ConfigureWebView2Folder");
+        }
+
         this.InitializeComponent();
 
         this.UnhandledException += (s, e) =>
         {
-            try
-            {
-                var crashPath = Path.Combine(Path.GetTempPath(), "ytm_crash.txt");
-                File.WriteAllText(crashPath, $"WinUI Unhandled: {e.Message}\nException: {e.Exception}\nStackTrace: {e.Exception?.StackTrace}");
-            }
-            catch { }
+            CrashLoggerService.LogCrash(e.Exception, "WinUI.UnhandledException");
         };
     }
 
@@ -44,5 +53,30 @@ public partial class App : Application
         MainThread.Initialize(MainWindow.DispatcherQueue);
 
         MainWindow.Activate();
+    }
+
+    public static void ExitApplication()
+    {
+        if (IsExiting) return;
+        IsExiting = true;
+
+        void CleanupAndExit()
+        {
+            try { MainWindow?.DisposeTrayIcon(); } catch { }
+            try { Services?.GetService<DiscordRpcService>()?.Dispose(); } catch { }
+            try { (Services?.GetService<IAudioService>() as IDisposable)?.Dispose(); } catch { }
+            try { MainWindow?.Close(); } catch { }
+            try { Application.Current?.Exit(); } catch { }
+            Environment.Exit(0);
+        }
+
+        if (MainWindow?.DispatcherQueue != null && !MainWindow.DispatcherQueue.HasThreadAccess)
+        {
+            MainWindow.DispatcherQueue.TryEnqueue(() => CleanupAndExit());
+        }
+        else
+        {
+            CleanupAndExit();
+        }
     }
 }

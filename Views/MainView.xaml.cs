@@ -124,6 +124,23 @@ public sealed partial class MainView : UserControl
     {
         if (args.SelectedItemContainer?.Tag is string tag)
         {
+            if (tag == "Login")
+            {
+                if (ViewModel?.IsLoggedIn == true)
+                {
+                    AccountNavItem?.ContextFlyout?.ShowAt(AccountNavItem);
+                }
+                else
+                {
+                    OpenLoginWindow();
+                    var activeItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == ViewModel?.CurrentView);
+                    if (activeItem != null)
+                    {
+                        NavView.SelectedItem = activeItem;
+                    }
+                }
+                return;
+            }
             ViewModel?.NavigateCommand.Execute(tag);
         }
     }
@@ -175,10 +192,12 @@ public sealed partial class MainView : UserControl
     private void OnPlaylistCardClick(object sender, RoutedEventArgs e)
     {
         var element = sender as FrameworkElement;
-        var playlist = element?.Tag as PlaylistModel ?? element?.DataContext as PlaylistModel;
+        var playlist = element?.Tag as PlaylistModel 
+                    ?? element?.DataContext as PlaylistModel
+                    ?? (sender as MenuFlyoutItem)?.CommandParameter as PlaylistModel;
         if (playlist != null && ViewModel != null)
         {
-            _ = ViewModel.PlayPlaylistCommand.ExecuteAsync(playlist);
+            _ = ViewModel.OpenPlaylistCommand.ExecuteAsync(playlist);
         }
     }
 
@@ -311,6 +330,69 @@ public sealed partial class MainView : UserControl
             _ = ViewModel.PlayAlbumCommand.ExecuteAsync(album);
     }
 
+    private async void OnSongContextAddToPlaylistClick(object sender, RoutedEventArgs e)
+    {
+        var song = (sender as MenuFlyoutItem)?.CommandParameter as SongModel
+                ?? (sender as FrameworkElement)?.Tag as SongModel
+                ?? (sender as FrameworkElement)?.DataContext as SongModel;
+        if (song == null || ViewModel == null) return;
+
+        ViewModel.UpdateEditablePlaylists();
+        if (ViewModel.EditablePlaylists.Count == 0)
+        {
+            var noPlaylistsDialog = new ContentDialog
+            {
+                Title = "Přidat do playlistu",
+                Content = "V knihovně nemáte žádné upravitelné playlisty, do kterých můžete přidávat skladby.",
+                CloseButtonText = "Zavřít",
+                XamlRoot = this.XamlRoot
+            };
+            _ = noPlaylistsDialog.ShowAsync();
+            return;
+        }
+
+        var stackPanel = new StackPanel { Spacing = 8 };
+        stackPanel.Children.Add(new TextBlock { Text = $"Vyberte playlist pro přidání skladby '{song.Title}':", Margin = new Thickness(0, 0, 0, 8) });
+
+        var listView = new ListView
+        {
+            ItemsSource = ViewModel.EditablePlaylists,
+            SelectionMode = ListViewSelectionMode.Single,
+            MaxHeight = 300
+        };
+
+        listView.ItemTemplate = (DataTemplate)Microsoft.UI.Xaml.Markup.XamlReader.Load(@"
+            <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
+                <Grid ColumnDefinitions=""40, *"" Margin=""0,4"">
+                    <Border Grid.Column=""0"" CornerRadius=""4"">
+                        <Image Source=""{Binding ThumbnailUrl}"" Width=""36"" Height=""36"" Stretch=""UniformToFill"" />
+                    </Border>
+                    <StackPanel Grid.Column=""1"" Margin=""10,0,0,0"" VerticalAlignment=""Center"">
+                        <TextBlock Text=""{Binding Title}"" FontWeight=""SemiBold"" FontSize=""13"" TextTrimming=""CharacterEllipsis"" />
+                        <TextBlock Text=""{Binding Creator}"" FontSize=""11"" Foreground=""{ThemeResource TextFillColorSecondaryBrush}"" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>");
+
+        stackPanel.Children.Add(listView);
+
+        var dialog = new ContentDialog
+        {
+            Title = "Přidat do playlistu",
+            Content = stackPanel,
+            PrimaryButtonText = "Přidat",
+            CloseButtonText = "Zrušit",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary && listView.SelectedItem is PlaylistModel selectedPlaylist)
+        {
+            await ViewModel.AddSongToPlaylistAsync(selectedPlaylist, song);
+        }
+    }
+
     private void OnAlbumContextOpenArtistClick(object sender, RoutedEventArgs e)
     {
         var album = (sender as MenuFlyoutItem)?.CommandParameter as AlbumModel
@@ -336,6 +418,81 @@ public sealed partial class MainView : UserControl
                     ?? (sender as FrameworkElement)?.DataContext as PlaylistModel;
         if (playlist != null && ViewModel != null)
             _ = ViewModel.PlayPlaylistCommand.ExecuteAsync(playlist);
+    }
+
+    private void OnPlaylistBackClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.ClosePlaylistCommand.Execute(null);
+            var item = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == ViewModel.CurrentView);
+            if (item != null)
+            {
+                NavView.SelectedItem = item;
+            }
+        }
+    }
+
+    private void OnPlaylistSongItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is SongModel song && ViewModel != null)
+        {
+            _ = ViewModel.PlaySongCommand.ExecuteAsync(song);
+        }
+    }
+
+    private void OnPlaylistSongMoveUpClick(object sender, RoutedEventArgs e)
+    {
+        var song = (sender as FrameworkElement)?.Tag as SongModel
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as SongModel;
+        if (song != null && ViewModel != null)
+        {
+            _ = ViewModel.MoveSongUpCommand.ExecuteAsync(song);
+        }
+    }
+
+    private void OnPlaylistSongMoveDownClick(object sender, RoutedEventArgs e)
+    {
+        var song = (sender as FrameworkElement)?.Tag as SongModel
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as SongModel;
+        if (song != null && ViewModel != null)
+        {
+            _ = ViewModel.MoveSongDownCommand.ExecuteAsync(song);
+        }
+    }
+
+    private void OnPlaylistSongRemoveClick(object sender, RoutedEventArgs e)
+    {
+        var song = (sender as FrameworkElement)?.Tag as SongModel
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as SongModel;
+        if (song != null && ViewModel != null)
+        {
+            _ = ViewModel.RemoveSongFromCurrentPlaylistCommand.ExecuteAsync(song);
+        }
+    }
+
+    private void OnAddSongSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        if (!string.IsNullOrWhiteSpace(args.QueryText) && ViewModel != null)
+        {
+            _ = ViewModel.SearchSongsToAddToPlaylistCommand.ExecuteAsync(args.QueryText);
+        }
+    }
+
+    private void OnAddSongSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    {
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && !string.IsNullOrWhiteSpace(sender.Text) && ViewModel != null)
+        {
+            _ = ViewModel.SearchSongsToAddToPlaylistCommand.ExecuteAsync(sender.Text);
+        }
+    }
+
+    private void OnSearchResultItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is SongModel song && ViewModel != null)
+        {
+            _ = ViewModel.AddSongToCurrentPlaylistCommand.ExecuteAsync(song);
+        }
     }
     // ----------------------------
 
@@ -406,57 +563,84 @@ public sealed partial class MainView : UserControl
         }
     }
 
-    private void OnGoToLoginClick(object sender, RoutedEventArgs e)
-    {
-        if (ViewModel != null)
-        {
-            ViewModel.CurrentView = "Login";
-            var loginItem = NavView.FooterMenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == "Login");
-            if (loginItem != null)
-            {
-                NavView.SelectedItem = loginItem;
-            }
-        }
-    }
+    private LoginWindow? _loginWindow;
 
-    private async void LoginWebView_NavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
+    private void OpenLoginWindow()
     {
         if (ViewModel == null) return;
-        try
+        if (_loginWindow != null)
         {
-            if (sender.CoreWebView2 != null)
-            {
-                var cookieManager = sender.CoreWebView2.CookieManager;
-                var cookieList = await cookieManager.GetCookiesAsync("https://music.youtube.com");
-                
-                var targetCookies = new List<Cookie>();
-                bool hasSapisid = false;
-                bool hasPapisid = false;
-                bool hasSsid = false;
-                bool hasHsid = false;
-                bool hasSapsid = false;
-
-                foreach (var c in cookieList)
-                {
-                    targetCookies.Add(new Cookie(c.Name, c.Value, c.Path, c.Domain));
-                    if (c.Name == "SAPISID") hasSapisid = true;
-                    if (c.Name == "__Secure-3PAPISID") hasPapisid = true;
-                    if (c.Name == "SSID") hasSsid = true;
-                    if (c.Name == "HSID") hasHsid = true;
-                    if (c.Name == "SID") hasSapsid = true;
-                }
-
-                if ((hasSapisid || hasPapisid) && (hasSsid || hasHsid || hasSapsid))
-                {
-                    await ViewModel.SaveSessionAsync(targetCookies);
-                    ViewModel.CurrentView = "Home";
-                    NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
-                }
-            }
+            _loginWindow.Activate();
+            return;
         }
-        catch (Exception ex)
+
+        _loginWindow = new LoginWindow(ViewModel);
+        _loginWindow.Closed += (s, e) =>
         {
-            System.Diagnostics.Debug.WriteLine($"Error extracting cookies: {ex.Message}");
+            _loginWindow = null;
+        };
+        _loginWindow.Activate();
+    }
+
+    private void OnGoToLoginClick(object sender, RoutedEventArgs e)
+    {
+        OpenLoginWindow();
+    }
+
+    private async void OnMainViewManualCookieClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel == null) return;
+
+        var stackPanel = new StackPanel { Spacing = 10, Width = 460 };
+        stackPanel.Children.Add(new TextBlock 
+        { 
+            Text = "Zadejte cookies z vašeho webového prohlížeče (formát: 'SAPISID=xxx; SSID=yyy; ...' nebo JSON):", 
+            TextWrapping = TextWrapping.Wrap, 
+            FontSize = 13 
+        });
+
+        var textBox = new TextBox
+        {
+            AcceptsReturn = true,
+            Height = 130,
+            PlaceholderText = "Vložte zkopírované cookies zde...",
+            TextWrapping = TextWrapping.Wrap
+        };
+        stackPanel.Children.Add(textBox);
+
+        var dialog = new ContentDialog
+        {
+            Title = "Vložit přihlašovací cookies ručně",
+            Content = stackPanel,
+            PrimaryButtonText = "Přihlásit",
+            CloseButtonText = "Zrušit",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            var parsedCookies = LoginWindow.ParseCookies(textBox.Text);
+            bool hasAuth = parsedCookies.Any(c => c.Name == "SAPISID" || c.Name == "__Secure-3PAPISID" || c.Name == "SID");
+
+            if (hasAuth)
+            {
+                await ViewModel.SaveSessionAsync(parsedCookies);
+                ViewModel.CurrentView = "Home";
+                NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
+            }
+            else
+            {
+                var errorDialog = new ContentDialog
+                {
+                    Title = "Neplatné cookies",
+                    Content = "Zadaný text neobsahuje potřebné přihlašovací tokeny (SAPISID, __Secure-3PAPISID ani SID).",
+                    CloseButtonText = "Rozumím",
+                    XamlRoot = this.XamlRoot
+                };
+                _ = errorDialog.ShowAsync();
+            }
         }
     }
 }
