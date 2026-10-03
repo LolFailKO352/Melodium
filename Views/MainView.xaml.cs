@@ -201,6 +201,103 @@ public sealed partial class MainView : UserControl
         }
     }
 
+    private void OnHomeItemClick(object sender, RoutedEventArgs e)
+    {
+        var element = sender as FrameworkElement;
+        var item = element?.Tag as HomeItemModel 
+                ?? element?.DataContext as HomeItemModel 
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as HomeItemModel;
+
+        if (item == null || ViewModel == null) return;
+
+        switch (item.Type)
+        {
+            case HomeItemType.Song:
+                if (item.Song != null)
+                {
+                    _ = ViewModel.PlaySongCommand.ExecuteAsync(item.Song);
+                }
+                break;
+            case HomeItemType.Playlist:
+                if (item.Playlist != null)
+                {
+                    _ = ViewModel.OpenPlaylistCommand.ExecuteAsync(item.Playlist);
+                }
+                break;
+            case HomeItemType.Album:
+                if (item.Album != null)
+                {
+                    _ = ViewModel.PlayAlbumCommand.ExecuteAsync(item.Album);
+                }
+                break;
+            case HomeItemType.Artist:
+                if (item.Artist != null)
+                {
+                    _ = ViewModel.OpenArtistCommand.ExecuteAsync(item.Artist);
+                }
+                break;
+        }
+    }
+
+    private void OnHomeItemPlayClick(object sender, RoutedEventArgs e)
+    {
+        var item = (sender as FrameworkElement)?.Tag as HomeItemModel 
+                ?? (sender as FrameworkElement)?.DataContext as HomeItemModel 
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as HomeItemModel;
+        if (item == null || ViewModel == null) return;
+
+        if (item.IsSong && item.Song != null)
+        {
+            _ = ViewModel.PlaySongCommand.ExecuteAsync(item.Song);
+        }
+        else if (item.IsPlaylist && item.Playlist != null)
+        {
+            _ = ViewModel.PlayPlaylistCommand.ExecuteAsync(item.Playlist);
+        }
+        else if (item.IsAlbum && item.Album != null)
+        {
+            _ = ViewModel.PlayAlbumCommand.ExecuteAsync(item.Album);
+        }
+        else if (item.IsArtist && item.Artist != null)
+        {
+            _ = ViewModel.OpenArtistCommand.ExecuteAsync(item.Artist);
+        }
+    }
+
+    private void OnHomeItemPlayNextClick(object sender, RoutedEventArgs e)
+    {
+        var item = (sender as FrameworkElement)?.Tag as HomeItemModel 
+                ?? (sender as FrameworkElement)?.DataContext as HomeItemModel 
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as HomeItemModel;
+        if (item?.Song != null && ViewModel != null)
+        {
+            ViewModel.PlaySongNextCommand.Execute(item.Song);
+        }
+    }
+
+    private void OnHomeItemAddToQueueClick(object sender, RoutedEventArgs e)
+    {
+        var item = (sender as FrameworkElement)?.Tag as HomeItemModel 
+                ?? (sender as FrameworkElement)?.DataContext as HomeItemModel 
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as HomeItemModel;
+        if (item?.Song != null && ViewModel != null)
+        {
+            ViewModel.AddToQueueCommand.Execute(item.Song);
+        }
+    }
+
+    private void OnHomeItemAddToPlaylistClick(object sender, RoutedEventArgs e)
+    {
+        var item = (sender as FrameworkElement)?.Tag as HomeItemModel 
+                ?? (sender as FrameworkElement)?.DataContext as HomeItemModel 
+                ?? (sender as MenuFlyoutItem)?.CommandParameter as HomeItemModel;
+        if (item?.Song != null)
+        {
+            var dummyItem = new MenuFlyoutItem { CommandParameter = item.Song };
+            OnSongContextAddToPlaylistClick(dummyItem, e);
+        }
+    }
+
     private void OnAlbumCardClick(object sender, RoutedEventArgs e)
     {
         var element = sender as FrameworkElement;
@@ -218,6 +315,16 @@ public sealed partial class MainView : UserControl
         if (artist != null && ViewModel != null)
         {
             _ = ViewModel.OpenArtistCommand.ExecuteAsync(artist);
+        }
+    }
+
+    private void OnMoodCardClick(object sender, RoutedEventArgs e)
+    {
+        var element = sender as FrameworkElement;
+        var mood = element?.Tag as MoodModel ?? element?.DataContext as MoodModel;
+        if (mood != null && ViewModel != null)
+        {
+            _ = ViewModel.PlayMoodCommand.ExecuteAsync(mood);
         }
     }
 
@@ -337,13 +444,28 @@ public sealed partial class MainView : UserControl
                 ?? (sender as FrameworkElement)?.DataContext as SongModel;
         if (song == null || ViewModel == null) return;
 
-        ViewModel.UpdateEditablePlaylists();
+        // Pokud nemáme žádné upravitelné playlisty nebo knihovna není ještě načtena, zkusit načíst
+        if (ViewModel.EditablePlaylists.Count == 0 || ViewModel.LibraryPlaylists.Count == 0)
+        {
+            await ViewModel.RefreshEditablePlaylistsAsync(song.VideoId);
+        }
+        else
+        {
+            ViewModel.UpdateEditablePlaylists();
+        }
+
+        if (ViewModel.EditablePlaylists.Count == 0)
+        {
+            // Druhý pokus – načtení přímo knihovních playlistů
+            await ViewModel.RefreshEditablePlaylistsAsync();
+        }
+
         if (ViewModel.EditablePlaylists.Count == 0)
         {
             var noPlaylistsDialog = new ContentDialog
             {
                 Title = "Přidat do playlistu",
-                Content = "V knihovně zatím nemáte žádné upravitelné playlisty. Chcete nyní vytvořit nový playlist na YouTube Music a přidat do něj tuto skladbu?",
+                Content = "V knihovně zatím nemáte žádné playlisty, do kterých lze přidávat skladby. Chcete nyní vytvořit nový playlist na YouTube Music a přidat do něj tuto skladbu?",
                 PrimaryButtonText = "Vytvořit nový playlist",
                 CloseButtonText = "Zrušit",
                 DefaultButton = ContentDialogButton.Primary,
@@ -367,6 +489,11 @@ public sealed partial class MainView : UserControl
             SelectionMode = ListViewSelectionMode.Single,
             MaxHeight = 300
         };
+
+        if (ViewModel.EditablePlaylists.Count > 0)
+        {
+            listView.SelectedIndex = 0;
+        }
 
         listView.ItemTemplate = (DataTemplate)Microsoft.UI.Xaml.Markup.XamlReader.Load(@"
             <DataTemplate xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation"">
@@ -397,7 +524,19 @@ public sealed partial class MainView : UserControl
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary && listView.SelectedItem is PlaylistModel selectedPlaylist)
         {
-            await ViewModel.AddSongToPlaylistAsync(selectedPlaylist, song);
+            var addResult = await ViewModel.AddSongToPlaylistAsync(selectedPlaylist, song);
+            if (addResult.IsDuplicate)
+            {
+                var dupDialog = new ContentDialog
+                {
+                    Title = "Skladba již v playlistu je",
+                    Content = addResult.Message,
+                    CloseButtonText = "Rozumím",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+                await dupDialog.ShowAsync();
+            }
         }
         else if (result == ContentDialogResult.Secondary)
         {
@@ -545,11 +684,25 @@ public sealed partial class MainView : UserControl
         }
     }
 
-    private void OnSearchResultItemClick(object sender, ItemClickEventArgs e)
+    private async void OnSearchResultItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is SongModel song && ViewModel != null)
         {
-            _ = ViewModel.AddSongToCurrentPlaylistCommand.ExecuteAsync(song);
+            if (ViewModel.CurrentPlaylistSongs.Any(s => s.VideoId == song.VideoId))
+            {
+                var dupDialog = new ContentDialog
+                {
+                    Title = "Skladba již v playlistu je",
+                    Content = $"Skladba '{song.Title}' se v playlistu již nachází.",
+                    CloseButtonText = "Rozumím",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = this.XamlRoot
+                };
+                await dupDialog.ShowAsync();
+                return;
+            }
+
+            await ViewModel.AddSongToCurrentPlaylistCommand.ExecuteAsync(song);
         }
     }
     // ----------------------------
@@ -582,6 +735,14 @@ public sealed partial class MainView : UserControl
         if (e.ClickedItem is SongModel song && ViewModel != null)
         {
             _ = ViewModel.PlaySongCommand.ExecuteAsync(song);
+        }
+    }
+
+    private void OnLikedSongListItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is SongModel song && ViewModel != null)
+        {
+            _ = ViewModel.PlayLikedSongItemCommand.ExecuteAsync(song);
         }
     }
 

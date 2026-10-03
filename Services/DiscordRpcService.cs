@@ -67,29 +67,36 @@ namespace Melodium.Services
             RpcLog("Deinitialize called");
             _isInitialized = false;
             
-            if (_updateLoopCts != null)
+            try
             {
-                _updateLoopCts.Cancel();
-                _updateLoopCts.Dispose();
-                _updateLoopCts = null;
+                if (_updateLoopCts != null)
+                {
+                    _updateLoopCts.Cancel();
+                    _updateLoopCts.Dispose();
+                    _updateLoopCts = null;
+                }
             }
+            catch { }
 
-            if (_activityManager != null)
+            try
             {
-                try
+                if (_activityManager != null)
                 {
                     _activityManager.ClearActivity((res) => { });
                 }
-                catch { }
             }
+            catch { }
 
-            if (_discord != null)
+            try
             {
-                try
+                if (_discord != null)
                 {
                     _discord.Dispose();
                 }
-                catch { }
+            }
+            catch { }
+            finally
+            {
                 _discord = null;
                 _activityManager = null;
             }
@@ -97,24 +104,35 @@ namespace Melodium.Services
 
         private async Task RunUpdateLoopAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested && _isInitialized)
+            try
             {
-                try
+                while (!token.IsCancellationRequested && _isInitialized)
                 {
-                    _discord?.RunCallbacks();
+                    try
+                    {
+                        _discord?.RunCallbacks();
+                    }
+                    catch (Discord.ResultException ex)
+                    {
+                        RpcLog($"ResultException in RunCallbacks: {ex.Message}");
+                        Deinitialize();
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        // Ignorovat
+                    }
+
+                    await Task.Delay(1000 / 60, token);
                 }
-                catch (Discord.ResultException ex)
-                {
-                    RpcLog($"ResultException in RunCallbacks: {ex.Message}");
-                    Deinitialize();
-                    break;
-                }
-                catch (Exception)
-                {
-                    // Ignorovat
-                }
-                
-                await Task.Delay(1000 / 60, token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Normální stav při ukončení / deinitializaci
+            }
+            catch (Exception ex)
+            {
+                RpcLog($"RunUpdateLoopAsync error: {ex.Message}");
             }
         }
 

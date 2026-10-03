@@ -54,9 +54,9 @@
         
         <!-- Custom TitleBar drag area -->
         <Grid Grid.Row="0" x:Name="AppTitleBar" Height="40" Background="Transparent" ColumnDefinitions="Auto, *, Auto">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0" Spacing="10">
-                <Image Source="Resources/Raw/trayicon.png" Width="20" Height="20" VerticalAlignment="Center" />
-                <TextBlock Text="Melodium" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0" Spacing="8">
+                <TextBlock Text="🎶" FontSize="16" VerticalAlignment="Center" />
+                <TextBlock Text="Melodium 🎶" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
         </Grid>
 
@@ -75,6 +75,11 @@
                     <NavigationViewItem Content="{x:Bind ViewModel.TextHome, Mode=OneWay}" Tag="Home">
                         <NavigationViewItem.Icon>
                             <FontIcon Glyph="&#xE80F;" />
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
+                    <NavigationViewItem Content="{x:Bind ViewModel.TextExplore, Mode=OneWay}" Tag="Explore">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE8A9;" />
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
                     <NavigationViewItem Content="{x:Bind ViewModel.TextLibrary, Mode=OneWay}" Tag="Library">
@@ -153,6 +158,39 @@
                         <ScrollViewer Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Home'}" VerticalScrollBarVisibility="Auto">
                             <StackPanel Spacing="28" Padding="0,0,0,32">
                                 
+                                <!-- Quick Mood Pills (YouTube Music Style) -->
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Vše" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🎶 Vše" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Relax" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🧘 Relax" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Energie" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="⚡ Energie" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Cvičení" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🏋️ Cvičení" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Soustředění" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🧠 Soustředění" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Párty" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🎉 Párty" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Rock" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🎸 Rock" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Pop" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🎤 Pop" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Hip-Hop" CornerRadius="16" Padding="14,6">
+                                            <TextBlock Text="🎧 Hip-Hop" FontWeight="SemiBold" FontSize="12" />
+                                        </Button>
+                                    </StackPanel>
+                                </ScrollViewer>
+
                                 <!-- Personalized Recommendations -->
                                 <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.HasPersonalizedRecommendations, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="{x:Bind ViewModel.TextPersonalizedSongs, Mode=OneWay}" FontSize="22" FontWeight="Bold" />
@@ -189,13 +227,231 @@
                                     </ItemsRepeater>
                                 </StackPanel>
 
-                                <!-- Explore / Recommended Music -->
-                                <StackPanel Spacing="16">
+                                <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
+
+                                <!-- Dynamic Home Sections (Poslechnout znovu, Rychlý výběr, Doporučené playlisty, atd.) -->
+                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.HomeSections, Mode=OneWay}"
+                                               Visibility="{x:Bind ViewModel.HasHomeSections, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                    <ItemsRepeater.Layout>
+                                        <StackLayout Orientation="Vertical" Spacing="32" />
+                                    </ItemsRepeater.Layout>
+                                    <ItemsRepeater.ItemTemplate>
+                                        <DataTemplate x:DataType="models:HomeSectionModel">
+                                            <StackPanel Spacing="14">
+                                                <!-- Section Header -->
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="{x:Bind Strapline}"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold"
+                                                               CharacterSpacing="60"
+                                                               Foreground="{StaticResource MelodiumAccentBrush}"
+                                                               Visibility="{x:Bind Strapline, Converter={StaticResource NullToVis}}" />
+                                                    <TextBlock Text="{x:Bind Title}"
+                                                               FontSize="22"
+                                                               FontWeight="Bold" />
+                                                </StackPanel>
+
+                                                <!-- Horizontal Carousel of items -->
+                                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                                              VerticalScrollBarVisibility="Disabled"
+                                                              HorizontalScrollMode="Enabled"
+                                                              VerticalScrollMode="Disabled">
+                                                    <ItemsRepeater ItemsSource="{x:Bind Items}">
+                                                        <ItemsRepeater.Layout>
+                                                            <StackLayout Orientation="Horizontal" Spacing="14" />
+                                                        </ItemsRepeater.Layout>
+                                                        <ItemsRepeater.ItemTemplate>
+                                                            <DataTemplate x:DataType="models:HomeItemModel">
+                                                                <Button Style="{StaticResource MediaCardButtonStyle}"
+                                                                        Width="160"
+                                                                        Padding="10"
+                                                                        CornerRadius="10"
+                                                                        HorizontalAlignment="Left"
+                                                                        VerticalAlignment="Stretch"
+                                                                        Tag="{x:Bind}"
+                                                                        DataContext="{x:Bind}"
+                                                                        Click="OnHomeItemClick">
+                                                                    <Button.ContextFlyout>
+                                                                        <MenuFlyout>
+                                                                            <MenuFlyoutItem Text="Přehrát" Icon="Play" Tag="{x:Bind}" Click="OnHomeItemPlayClick" />
+                                                                            <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemPlayNextClick" Visibility="{x:Bind IsSong, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                            <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToQueueClick" Visibility="{x:Bind IsSong, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToPlaylistClick" Visibility="{x:Bind IsSong, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                        </MenuFlyout>
+                                                                    </Button.ContextFlyout>
+                                                                    
+                                                                    <StackPanel Width="140" Spacing="8">
+                                                                        <!-- Thumbnail with Badge -->
+                                                                        <Grid Width="140" Height="140">
+                                                                            <Border CornerRadius="8">
+                                                                                <Image Source="{x:Bind ThumbnailUrl}"
+                                                                                       Width="140"
+                                                                                       Height="140"
+                                                                                       Stretch="UniformToFill" />
+                                                                            </Border>
+                                                                            
+                                                                            <!-- Type Badge (bottom-left overlay) -->
+                                                                            <Border HorizontalAlignment="Left"
+                                                                                    VerticalAlignment="Bottom"
+                                                                                    Margin="6"
+                                                                                    Background="#CC18181C"
+                                                                                    CornerRadius="6"
+                                                                                    Padding="6,3">
+                                                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                                    <FontIcon Glyph="{x:Bind TypeGlyph}" FontSize="10" Foreground="#F0F0F0" />
+                                                                                    <TextBlock Text="{x:Bind TypeName}" FontSize="10" FontWeight="SemiBold" Foreground="#F0F0F0" />
+                                                                                </StackPanel>
+                                                                            </Border>
+                                                                        </Grid>
+
+                                                                        <!-- Title & Subtitle -->
+                                                                        <StackPanel Spacing="3">
+                                                                            <TextBlock Text="{x:Bind Title}"
+                                                                                       FontWeight="SemiBold"
+                                                                                       FontSize="13"
+                                                                                       MaxLines="2"
+                                                                                       TextWrapping="Wrap"
+                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                            <TextBlock Text="{x:Bind Subtitle}"
+                                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                                       FontSize="11"
+                                                                                       MaxLines="1"
+                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                        </StackPanel>
+                                                                    </StackPanel>
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </ItemsRepeater.ItemTemplate>
+                                                    </ItemsRepeater>
+                                                </ScrollViewer>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsRepeater.ItemTemplate>
+                                </ItemsRepeater>
+
+                                <!-- Fallback Explore / Recommended Music (Visible when no sections loaded) -->
+                                <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.HasHomeSections, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
                                     <TextBlock Text="{x:Bind ViewModel.TextRecommendedMusic, Mode=OneWay}" FontSize="22" FontWeight="Bold" />
                                     
-                                    <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
-
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.HomeRecommendations, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="280" MinItemHeight="90" MinRowSpacing="12" MinColumnSpacing="12" Orientation="Horizontal" />
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="models:SongModel">
+                                                <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
+                                                    <Button.ContextFlyout>
+                                                        <MenuFlyout>
+                                                            <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
+                                                            <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
+                                                            <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
+                                                            <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
+                                                            <MenuFlyoutSeparator />
+                                                            <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
+                                                        </MenuFlyout>
+                                                    </Button.ContextFlyout>
+                                                    <Grid ColumnDefinitions="70, *">
+                                                        <Border Grid.Column="0" CornerRadius="6">
+                                                            <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="70" Height="70" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- VIEW: EXPLORE 🎶 -->
+                        <ScrollViewer Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Explore'}" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="32" Padding="0,0,0,40">
+                                
+                                <!-- Hero Banner -->
+                                <Border CornerRadius="16" Padding="28,24" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{StaticResource MelodiumCardBorderBrush}" BorderThickness="1">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <StackPanel Grid.Column="0" Spacing="8" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <TextBlock Text="🎶" FontSize="26" VerticalAlignment="Center" />
+                                                <TextBlock Text="Objevujte novou hudbu" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock Text="Nejnovější hity, globální žebříčky a výběr skladeb pro každou náladu." Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap" />
+                                            
+                                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+                                                <Button Command="{x:Bind ViewModel.PlayAllExploreChartsCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="16,8" CornerRadius="8">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                                        <TextBlock Text="Přehrát žebříčky 🎶" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Command="{x:Bind ViewModel.ShuffleExploreChartsCommand}" Padding="16,8" CornerRadius="8">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <FontIcon Glyph="&#xE8B1;" FontSize="14" />
+                                                        <TextBlock Text="Zamíchat žebříček 🔀" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1" Background="#1528C6D0" BorderBrush="#3528C6D0" BorderThickness="1" CornerRadius="45" Width="90" Height="90" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20,0,0,0">
+                                            <FontIcon Glyph="&#xE8D6;" FontSize="38" Foreground="{StaticResource MelodiumAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Section: Nálady & Žánry -->
+                                <StackPanel Spacing="16">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xEC06;" FontSize="18" Foreground="{StaticResource MelodiumAccentBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Nálady a žánry" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.MoodCategories, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinItemWidth="240" MinItemHeight="85" MinRowSpacing="12" MinColumnSpacing="12" Orientation="Horizontal" />
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="models:MoodModel">
+                                                <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnMoodCardClick">
+                                                    <Grid ColumnDefinitions="48, *" VerticalAlignment="Center">
+                                                        <Border Grid.Column="0" CornerRadius="24" Width="44" Height="44" Background="#15FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Icon}" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{x:Bind Title}" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{x:Bind Description}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="2" Margin="0,2,0,0" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </StackPanel>
+
+                                <!-- Section: Žebříčky & Trendy 🎶 -->
+                                <StackPanel Spacing="16">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE9D9;" FontSize="18" Foreground="{StaticResource MelodiumAccentBrush}" VerticalAlignment="Center" />
+                                            <TextBlock Text="Žebříčky &amp; Trendy 🎶" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Command="{x:Bind ViewModel.LoadExploreDataCommand}" Background="Transparent" BorderBrush="Transparent" Padding="8,4" CornerRadius="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE72C;" FontSize="12" />
+                                                <TextBlock Text="Obnovit" FontSize="12" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsExploreLoading, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
+
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ExploreCharts, Mode=OneWay}">
                                         <ItemsRepeater.Layout>
                                             <UniformGridLayout MinItemWidth="280" MinItemHeight="90" MinRowSpacing="12" MinColumnSpacing="12" Orientation="Horizontal" />
                                         </ItemsRepeater.Layout>
@@ -247,50 +503,148 @@
                                 </Button>
                             </Grid>
 
-                            <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" Margin="0,0,0,16" />
+                            <!-- Filter Chips (YouTube Music style: Vše, Skladby, Alba, Interpreti, Playlisty) -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Vše" CornerRadius="16" Padding="14,6">
+                                    <TextBlock Text="Vše" FontWeight="SemiBold" FontSize="12" />
+                                </Button>
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Skladby" CornerRadius="16" Padding="14,6">
+                                    <TextBlock Text="Skladby" FontWeight="SemiBold" FontSize="12" />
+                                </Button>
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Alba" CornerRadius="16" Padding="14,6">
+                                    <TextBlock Text="Alba" FontWeight="SemiBold" FontSize="12" />
+                                </Button>
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Interpreti" CornerRadius="16" Padding="14,6">
+                                    <TextBlock Text="Interpreti" FontWeight="SemiBold" FontSize="12" />
+                                </Button>
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Playlisty" CornerRadius="16" Padding="14,6">
+                                    <TextBlock Text="Playlisty" FontWeight="SemiBold" FontSize="12" />
+                                </Button>
+                            </StackPanel>
                             
                             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                                <Grid>
+                                <StackPanel Spacing="24">
+                                    <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
+
                                     <!-- Empty state -->
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="0,48,0,0" Visibility="{x:Bind ViewModel.IsSearchResultsEmpty, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                                         <FontIcon Glyph="&#xE721;" FontSize="44" Foreground="{ThemeResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
-                                        <TextBlock Text="Nebyly nalezeny žádné skladby" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                        <TextBlock Text="Zkuste vyhledat jiného interpreta nebo název skladby." Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" HorizontalAlignment="Center" />
+                                        <TextBlock Text="Nebyly nalezeny žádné výsledky" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                        <TextBlock Text="Zkuste vyhledat jiného interpreta, název skladby nebo album." Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" HorizontalAlignment="Center" />
                                     </StackPanel>
 
-                                    <!-- Search Results items matching Home design -->
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResults, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="280" MinItemHeight="86" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
-                                            <DataTemplate x:DataType="models:SongModel">
-                                                <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
-                                                    <Button.ContextFlyout>
-                                                        <MenuFlyout>
-                                                            <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
-                                                            <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
-                                                            <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
-                                                            <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
-                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
-                                                            <MenuFlyoutSeparator />
-                                                            <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
-                                                        </MenuFlyout>
-                                                    </Button.ContextFlyout>
-                                                    <Grid ColumnDefinitions="70, *">
-                                                        <Border Grid.Column="0" CornerRadius="6">
-                                                            <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="70" Height="70" />
-                                                        </Border>
-                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Button>
-                                            </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
-                                </Grid>
+                                    <!-- Songs Results -->
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResults.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Skladby" FontSize="18" FontWeight="Bold" />
+                                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResults, Mode=OneWay}">
+                                            <ItemsRepeater.Layout>
+                                                <UniformGridLayout MinItemWidth="280" MinItemHeight="86" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate x:DataType="models:SongModel">
+                                                    <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
+                                                        <Button.ContextFlyout>
+                                                            <MenuFlyout>
+                                                                <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
+                                                                <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
+                                                                <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
+                                                                <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
+                                                                <MenuFlyoutSeparator />
+                                                                <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
+                                                            </MenuFlyout>
+                                                        </Button.ContextFlyout>
+                                                        <Grid ColumnDefinitions="70, *">
+                                                            <Border Grid.Column="0" CornerRadius="6">
+                                                                <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="70" Height="70" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                                <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+
+                                    <!-- Albums Results -->
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResultsAlbums.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Alba" FontSize="18" FontWeight="Bold" />
+                                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResultsAlbums, Mode=OneWay}">
+                                            <ItemsRepeater.Layout>
+                                                <UniformGridLayout MinItemWidth="240" MinItemHeight="80" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate x:DataType="models:AlbumModel">
+                                                    <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnAlbumCardClick">
+                                                        <Grid ColumnDefinitions="64, *">
+                                                            <Border Grid.Column="0" CornerRadius="6">
+                                                                <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="64" Height="64" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+
+                                    <!-- Artists Results -->
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResultsArtists.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Interpreti" FontSize="18" FontWeight="Bold" />
+                                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResultsArtists, Mode=OneWay}">
+                                            <ItemsRepeater.Layout>
+                                                <UniformGridLayout MinItemWidth="200" MinItemHeight="70" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate x:DataType="models:ArtistModel">
+                                                    <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnArtistCardClick">
+                                                        <Grid ColumnDefinitions="50, *" VerticalAlignment="Center">
+                                                            <Border Grid.Column="0" CornerRadius="25" Width="50" Height="50">
+                                                                <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="50" Height="50" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Name}" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <TextBlock Text="{x:Bind Subscribers}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Visibility="{x:Bind Subscribers, Mode=OneWay, Converter={StaticResource NullToVis}}" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+
+                                    <!-- Playlists Results -->
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResultsPlaylists.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="Playlisty" FontSize="18" FontWeight="Bold" />
+                                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResultsPlaylists, Mode=OneWay}">
+                                            <ItemsRepeater.Layout>
+                                                <UniformGridLayout MinItemWidth="240" MinItemHeight="80" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate x:DataType="models:PlaylistModel">
+                                                    <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnPlaylistCardClick">
+                                                        <Grid ColumnDefinitions="64, *">
+                                                            <Border Grid.Column="0" CornerRadius="6">
+                                                                <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="64" Height="64" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <TextBlock Text="{x:Bind Creator}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+
+                                </StackPanel>
                             </ScrollViewer>
                         </Grid>
 
@@ -323,7 +677,8 @@
                                         </Button>
 
                                         <!-- Segmented Tab Selection -->
-                                        <RadioButtons SelectedIndex="0" SelectionChanged="OnLibraryTabSelectionChanged" MaxColumns="4">
+                                        <RadioButtons SelectedIndex="0" SelectionChanged="OnLibraryTabSelectionChanged" MaxColumns="5">
+                                            <RadioButton Content="{x:Bind ViewModel.TextLikedSongs, Mode=OneWay}" Tag="Liked" />
                                             <RadioButton Content="{x:Bind ViewModel.TextSongs, Mode=OneWay}" Tag="Songs" />
                                             <RadioButton Content="{x:Bind ViewModel.TextPlaylists, Mode=OneWay}" Tag="Playlists" />
                                             <RadioButton Content="{x:Bind ViewModel.TextAlbums, Mode=OneWay}" Tag="Albums" />
@@ -341,6 +696,90 @@
 
                                 <!-- Tab Contents -->
                                 <Grid Grid.Row="2">
+                                    <!-- Liked Songs Tab -->
+                                    <Grid Visibility="{x:Bind ViewModel.LibraryTab, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Liked'}" RowDefinitions="Auto, *">
+                                        <!-- Hero Banner for Liked Songs -->
+                                        <Border Grid.Row="0" Margin="0,0,0,16" CornerRadius="12" Padding="20" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                            <Grid ColumnDefinitions="Auto, *">
+                                                <!-- Liked Songs Icon / Artwork -->
+                                                <Border Grid.Column="0" CornerRadius="10" Width="100" Height="100" Background="#1A28C6D0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Grid>
+                                                        <Image Source="https://www.gstatic.com/youtube/media/ytm/images/pbg/liked-songs-delhi-1200.png" Stretch="UniformToFill" Width="100" Height="100" />
+                                                        <FontIcon Glyph="&#xEB52;" FontSize="40" Foreground="{ThemeResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Border>
+
+                                                <!-- Metadata & Quick Actions -->
+                                                <StackPanel Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Spacing="6">
+                                                    <TextBlock Text="Automatický playlist • YouTube Music" FontSize="11" Foreground="{ThemeResource AccentFillColorDefaultBrush}" FontWeight="SemiBold" />
+                                                    <TextBlock Text="Oblíbené skladby" FontSize="26" FontWeight="Bold" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{x:Bind ViewModel.LikedSongsCount, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                        <TextBlock Text="oblíbených skladeb" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                                                        <Button Command="{x:Bind ViewModel.PlayLikedSongsCommand}" Style="{ThemeResource AccentButtonStyle}" Padding="16,6" CornerRadius="16">
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <FontIcon Glyph="&#xE768;" FontSize="12" />
+                                                                <TextBlock Text="Přehrát vše" FontWeight="SemiBold" FontSize="12" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button Command="{x:Bind ViewModel.ShuffleLikedSongsCommand}" Padding="16,6" CornerRadius="16">
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <FontIcon Glyph="&#xE8B1;" FontSize="12" />
+                                                                <TextBlock Text="Zamíchat" FontWeight="SemiBold" FontSize="12" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button Command="{x:Bind ViewModel.OpenLikedSongsPlaylistCommand}" Background="Transparent" BorderBrush="Transparent" Padding="12,6" CornerRadius="16">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <FontIcon Glyph="&#xE8A7;" FontSize="12" />
+                                                                <TextBlock Text="Otevřít celou stránku" FontSize="12" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Liked Songs List -->
+                                        <Grid Grid.Row="1">
+                                            <ProgressBar IsIndeterminate="True" Height="3" VerticalAlignment="Top" Visibility="{x:Bind ViewModel.IsLikedSongsLoading, Mode=OneWay, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8" />
+
+                                            <ListView ItemsSource="{x:Bind ViewModel.LikedSongs, Mode=OneWay}"
+                                                      SelectionMode="Single"
+                                                      ItemClick="OnLikedSongListItemClick"
+                                                      IsItemClickEnabled="True">
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:SongModel">
+                                                        <Grid ColumnDefinitions="48, *, Auto, Auto" Margin="0,3" VerticalAlignment="Center">
+                                                            <Grid.ContextFlyout>
+                                                                <MenuFlyout>
+                                                                    <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
+                                                                    <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
+                                                                    <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
+                                                                    <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                    <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
+                                                                    <MenuFlyoutSeparator />
+                                                                    <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
+                                                                </MenuFlyout>
+                                                            </Grid.ContextFlyout>
+                                                            <Border Grid.Column="0" CornerRadius="6">
+                                                                <Image Source="{x:Bind ThumbnailUrl}" Width="44" Height="44" Stretch="UniformToFill" />
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" MaxLines="1" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Text="{x:Bind Duration}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="12,0" />
+                                                            <FontIcon Grid.Column="3" Glyph="&#xEB52;" FontSize="12" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center" Margin="8,0" ToolTipService.ToolTip="Oblíbená skladba" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </Grid>
+                                    </Grid>
+
                                     <!-- Songs Tab -->
                                     <ListView ItemsSource="{x:Bind ViewModel.LibrarySongs, Mode=OneWay}"
                                               SelectionMode="Single"
@@ -1055,14 +1494,14 @@
               CornerRadius="0"
               Padding="20,8">
             
-            <Grid ColumnDefinitions="280, *, 240">
+            <Grid ColumnDefinitions="330, *, 240">
                 
-                <!-- Left: Current Song Info -->
-                <Grid Grid.Column="0" ColumnDefinitions="Auto, *" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.IsCurrentSongNotNull, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                <!-- Left: Current Song Info & Like/Dislike -->
+                <Grid Grid.Column="0" ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.IsCurrentSongNotNull, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                     <Border Grid.Column="0" CornerRadius="8">
                         <Image Source="{x:Bind ViewModel.CurrentSong.ThumbnailUrl, Mode=OneWay}" Width="56" Height="56" Stretch="UniformToFill" />
                     </Border>
-                    <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
                         <TextBlock Text="{x:Bind ViewModel.CurrentSong.Title, Mode=OneWay}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" MaxLines="1" />
                         <Button Click="OnCurrentSongArtistClick"
                                 Background="Transparent"
@@ -1072,6 +1511,23 @@
                                 HorizontalAlignment="Left"
                                 ToolTipService.ToolTip="Zobrazit stránku interpreta">
                             <TextBlock Text="{x:Bind ViewModel.CurrentSong.Artist, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Like / Dislike (YouTube Music style) -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button Command="{x:Bind ViewModel.ToggleLikeCurrentSongCommand}"
+                                Width="32" Height="32" CornerRadius="16" Padding="0"
+                                Background="Transparent" BorderBrush="Transparent"
+                                ToolTipService.ToolTip="Líbí se mi">
+                            <FontIcon Glyph="{x:Bind ViewModel.CurrentSongLikeGlyph, Mode=OneWay}" FontSize="14"
+                                      Foreground="{x:Bind ViewModel.IsCurrentSongLiked, Mode=OneWay, Converter={StaticResource BoolToLyricBrush}}" />
+                        </Button>
+                        <Button Command="{x:Bind ViewModel.DislikeCurrentSongCommand}"
+                                Width="32" Height="32" CornerRadius="16" Padding="0"
+                                Background="Transparent" BorderBrush="Transparent"
+                                ToolTipService.ToolTip="Nelíbí se mi (Přeskočit)">
+                            <FontIcon Glyph="&#xE8E0;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -1142,8 +1598,13 @@
                 </StackPanel>
 
                 <!-- Right: Tools, Volume & Fullscreen Button -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="10">
-                    <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="8">
+                    <Button Command="{x:Bind ViewModel.ToggleMuteCommand}"
+                            Width="32" Height="32" CornerRadius="16" Padding="0"
+                            Background="Transparent" BorderBrush="Transparent"
+                            ToolTipService.ToolTip="Ztlumit / Zapnout zvuk">
+                        <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Button>
                     <Slider Minimum="0" Maximum="1" StepFrequency="0.01" Value="{x:Bind ViewModel.Volume, Mode=TwoWay}" Width="85" VerticalAlignment="Center" PointerWheelChanged="OnVolumePointerWheelChanged" />
 
                     <Button Command="{x:Bind ViewModel.ToggleFullScreenPlayerCommand}"
@@ -1262,11 +1723,25 @@
                                 ToolTipService.ToolTip="Karaoke text (Lyrics)">
                             <FontIcon Glyph="&#xE720;" FontSize="18" Foreground="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource BoolToLyricBrush}}" />
                         </Button>
+
+                        <!-- Like / Favorite Button -->
+                        <Button Command="{x:Bind ViewModel.ToggleLikeCurrentSongCommand}"
+                                Width="46" Height="46" CornerRadius="23" Padding="0"
+                                Background="Transparent" BorderBrush="Transparent"
+                                ToolTipService.ToolTip="Líbí se mi (Uložit do oblíbených)">
+                            <FontIcon Glyph="{x:Bind ViewModel.CurrentSongLikeGlyph, Mode=OneWay}" FontSize="18"
+                                      Foreground="{x:Bind ViewModel.IsCurrentSongLiked, Mode=OneWay, Converter={StaticResource BoolToLyricBrush}}" />
+                        </Button>
                     </StackPanel>
 
                     <!-- Fullscreen Volume Control -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" Margin="0,12,0,0">
-                        <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="0,12,0,0">
+                        <Button Command="{x:Bind ViewModel.ToggleMuteCommand}"
+                                Width="36" Height="36" CornerRadius="18" Padding="0"
+                                Background="Transparent" BorderBrush="Transparent"
+                                ToolTipService.ToolTip="Ztlumit / Zapnout zvuk">
+                            <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Button>
                         <Slider Minimum="0" Maximum="1" StepFrequency="0.01" Value="{x:Bind ViewModel.Volume, Mode=TwoWay}" Width="200" VerticalAlignment="Center" PointerWheelChanged="OnVolumePointerWheelChanged" ToolTipService.ToolTip="Hlasitost přehrávání (lze ovládat i kolečkem myši)" />
                     </StackPanel>
                 </StackPanel>
@@ -1311,35 +1786,52 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Queue Action: Clear Queue icon button -->
-                    <Button Grid.Column="1"
-                            Command="{x:Bind ViewModel.ClearQueueCommand}"
-                            ToolTipService.ToolTip="{x:Bind ViewModel.TextClearQueue, Mode=OneWay}"
-                            Width="36" Height="36"
-                            CornerRadius="18"
-                            Padding="0"
-                            Background="#14FFFFFF"
-                            BorderBrush="#20FFFFFF"
-                            BorderThickness="1"
-                            VerticalAlignment="Center"
-                            Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
-                        <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </Button>
+                    <!-- Queue & Lyrics Actions: Autoplay Toggle & Clear/Reload -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <!-- Autoplay / Nekonečné rádio Toggle (only in Queue view) -->
+                        <ToggleButton IsChecked="{x:Bind ViewModel.IsAutoplayEnabled, Mode=TwoWay}"
+                                      ToolTipService.ToolTip="Nekonečné rádio (Autoplay) 🎶 - Po dohrání fronty automaticky načte a pustí podobné skladby"
+                                      Height="36"
+                                      CornerRadius="18"
+                                      Padding="12,0"
+                                      BorderThickness="1"
+                                      Background="#14FFFFFF"
+                                      BorderBrush="#20FFFFFF"
+                                      Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="🎶" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Autoplay" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ToggleButton>
 
-                    <!-- Lyrics Action: Reload Lyrics icon button -->
-                    <Button Grid.Column="1"
-                            Command="{x:Bind ViewModel.LoadLyricsForCurrentSongCommand}"
-                            ToolTipService.ToolTip="Znovu načíst text"
-                            Width="36" Height="36"
-                            CornerRadius="18"
-                            Padding="0"
-                            Background="#14FFFFFF"
-                            BorderBrush="#20FFFFFF"
-                            BorderThickness="1"
-                            VerticalAlignment="Center"
-                            Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                        <FontIcon Glyph="&#xE72C;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </Button>
+                        <!-- Queue Action: Clear Queue icon button -->
+                        <Button Command="{x:Bind ViewModel.ClearQueueCommand}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.TextClearQueue, Mode=OneWay}"
+                                Width="36" Height="36"
+                                CornerRadius="18"
+                                Padding="0"
+                                Background="#14FFFFFF"
+                                BorderBrush="#20FFFFFF"
+                                BorderThickness="1"
+                                VerticalAlignment="Center"
+                                Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
+                            <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Button>
+
+                        <!-- Lyrics Action: Reload Lyrics icon button -->
+                        <Button Command="{x:Bind ViewModel.LoadLyricsForCurrentSongCommand}"
+                                ToolTipService.ToolTip="Znovu načíst text"
+                                Width="36" Height="36"
+                                CornerRadius="18"
+                                Padding="0"
+                                Background="#14FFFFFF"
+                                BorderBrush="#20FFFFFF"
+                                BorderThickness="1"
+                                VerticalAlignment="Center"
+                                Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                            <FontIcon Glyph="&#xE72C;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Button>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Queue List -->

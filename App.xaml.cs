@@ -61,19 +61,44 @@ public partial class App : Application
         if (IsExiting) return;
         IsExiting = true;
 
+        // Failsafe watchdog: if any unmanaged SDK or cleanup locks up, force kill the process after 1.5s
+        var watchdog = new System.Threading.Thread(() =>
+        {
+            System.Threading.Thread.Sleep(1500);
+            try { Environment.Exit(0); } catch { }
+            try { System.Diagnostics.Process.GetCurrentProcess().Kill(); } catch { }
+        })
+        {
+            IsBackground = true,
+            Name = "ExitWatchdog"
+        };
+        watchdog.Start();
+
         void CleanupAndExit()
         {
-            try { MainWindow?.DisposeTrayIcon(); } catch { }
-            try { Services?.GetService<DiscordRpcService>()?.Dispose(); } catch { }
             try { (Services?.GetService<IAudioService>() as IDisposable)?.Dispose(); } catch { }
+            try { Services?.GetService<DiscordRpcService>()?.Dispose(); } catch { }
+            try { MainWindow?.DisposeTrayIcon(); } catch { }
             try { MainWindow?.Close(); } catch { }
             try { Application.Current?.Exit(); } catch { }
-            Environment.Exit(0);
+
+            try
+            {
+                Environment.Exit(0);
+            }
+            catch
+            {
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
+            }
         }
 
         if (MainWindow?.DispatcherQueue != null && !MainWindow.DispatcherQueue.HasThreadAccess)
         {
-            MainWindow.DispatcherQueue.TryEnqueue(() => CleanupAndExit());
+            bool enqueued = MainWindow.DispatcherQueue.TryEnqueue(() => CleanupAndExit());
+            if (!enqueued)
+            {
+                CleanupAndExit();
+            }
         }
         else
         {

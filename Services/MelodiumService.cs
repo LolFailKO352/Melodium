@@ -31,6 +31,7 @@ namespace Melodium.Services
         private YoutubeClient _ytExplodeClient;
         private string? _sapisid;
         private string? _userChannelName;
+        private string? _userChannelHandle;
 
         public MelodiumService()
         {
@@ -49,17 +50,41 @@ namespace Melodium.Services
 
         public string? GetUserChannelName() => _userChannelName;
 
+        public void SetUserChannelHandle(string? handle)
+        {
+            if (!string.IsNullOrWhiteSpace(handle))
+            {
+                _userChannelHandle = handle;
+            }
+        }
+
+        public string? GetUserChannelHandle() => _userChannelHandle;
+
         public object CreateInnertubeContext()
         {
+            if (!string.IsNullOrWhiteSpace(_visitorData))
+            {
+                return new
+                {
+                    client = new
+                    {
+                        clientName = "WEB_REMIX",
+                        clientVersion = "1.20250101.01.00",
+                        hl = "cs",
+                        gl = "CZ",
+                        visitorData = _visitorData
+                    }
+                };
+            }
+
             return new
             {
                 client = new
                 {
                     clientName = "WEB_REMIX",
-                    clientVersion = "1.20230508.01.00",
+                    clientVersion = "1.20250101.01.00",
                     hl = "cs",
-                    gl = "CZ",
-                    visitorData = _visitorData
+                    gl = "CZ"
                 }
             };
         }
@@ -74,18 +99,34 @@ namespace Melodium.Services
                     : $"https://music.youtube.com/youtubei/v1/{endpoint}";
 
                 var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, url);
-                request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
-                request.Headers.Add("X-Origin", "https://music.youtube.com");
-                request.Headers.Add("X-YouTube-Client-Name", "67");
-                request.Headers.Add("X-YouTube-Client-Version", "1.20230508.01.00");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
+                request.Headers.TryAddWithoutValidation("Origin", "https://music.youtube.com");
+                request.Headers.TryAddWithoutValidation("Referer", "https://music.youtube.com/");
+                request.Headers.TryAddWithoutValidation("X-YouTube-Client-Name", "67");
+                request.Headers.TryAddWithoutValidation("X-YouTube-Client-Version", "1.20250101.01.00");
+                request.Headers.TryAddWithoutValidation("X-Goog-AuthUser", "0");
 
-                if (!string.IsNullOrEmpty(_sapisid))
+                if (_currentCookies != null && _currentCookies.Any())
+                {
+                    var cookieHeader = string.Join("; ", _currentCookies.Select(c => $"{c.Name}={c.Value}"));
+                    request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
+
+                string? sapisidToUse = _sapisid;
+                if (string.IsNullOrEmpty(sapisidToUse) && _currentCookies != null)
+                {
+                    sapisidToUse = _currentCookies.FirstOrDefault(c => c.Name == "SAPISID")?.Value
+                                ?? _currentCookies.FirstOrDefault(c => c.Name == "__Secure-3PAPISID")?.Value
+                                ?? _currentCookies.FirstOrDefault(c => c.Name == "__Secure-1PAPISID")?.Value;
+                }
+
+                if (!string.IsNullOrEmpty(sapisidToUse))
                 {
                     long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                    string input = $"{timestamp} {_sapisid} https://music.youtube.com";
+                    string input = $"{timestamp} {sapisidToUse} https://music.youtube.com";
                     using var sha1 = System.Security.Cryptography.SHA1.Create();
                     byte[] hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-                    string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+                    string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
                     request.Headers.TryAddWithoutValidation("Authorization", $"SAPISIDHASH {timestamp}_{hash}");
                 }
 
@@ -93,14 +134,20 @@ namespace Melodium.Services
                 request.Content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(request);
+                string responseText = await response.Content.ReadAsStringAsync();
                 if (response.IsSuccessStatusCode)
                 {
-                    string responseText = await response.Content.ReadAsStringAsync();
                     return System.Text.Json.Nodes.JsonNode.Parse(responseText);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Innertube Error] HTTP {(int)response.StatusCode} on '{endpoint}': {responseText}");
+                    Console.WriteLine($"[Innertube Error] HTTP {(int)response.StatusCode} on '{endpoint}': {responseText}");
                 }
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Chyba při Innertube volání '{endpoint}': {ex}");
                 Console.WriteLine($"Chyba při Innertube volání '{endpoint}': {ex.Message}");
             }
             return null;
@@ -126,6 +173,10 @@ namespace Melodium.Services
                         string? avatarUrl = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
 
                         string? channelId = activeHeader?["channelHandle"]?["runs"]?[0]?["text"]?.ToString();
+                        if (!string.IsNullOrWhiteSpace(channelId))
+                        {
+                            _userChannelHandle = channelId;
+                        }
 
                         if (!string.IsNullOrWhiteSpace(name))
                         {
@@ -142,26 +193,45 @@ namespace Melodium.Services
             return (null, null, null);
         }
 
-        public async Task EnsureInitializedAsync()
-        {
-            if (_isInitialized) return;
+        private bool _isGeneratingPoToken = false;
 
-#if WINDOWS
-            try 
-            {
-                var jsEnv = new YouTubeSessionGenerator.Js.Environments.NodeEnvironment();
-                var config = new YouTubeSessionConfig { JsEnvironment = jsEnv };
-                var creator = new YouTubeSessionCreator(config);
-                _visitorData = await creator.VisitorDataAsync();
-                _poToken = await creator.ProofOfOriginTokenAsync(_visitorData);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Chyba při generování PoTokenu: {ex.Message}");
-            }
-#endif
+        public Task EnsureInitializedAsync()
+        {
+            if (_isInitialized) return Task.CompletedTask;
             _isInitialized = true;
             InitializeClient(_currentCookies);
+
+#if WINDOWS
+            if (!_isGeneratingPoToken)
+            {
+                _isGeneratingPoToken = true;
+                _ = Task.Run(async () =>
+                {
+                    try 
+                    {
+                        var jsEnv = new YouTubeSessionGenerator.Js.Environments.NodeEnvironment();
+                        var config = new YouTubeSessionConfig { JsEnvironment = jsEnv };
+                        var creator = new YouTubeSessionCreator(config);
+                        _visitorData = await creator.VisitorDataAsync();
+                        _poToken = await creator.ProofOfOriginTokenAsync(_visitorData);
+                        _client = new YouTubeMusicClient(
+                            visitorData: _visitorData,
+                            poToken: _poToken,
+                            cookies: _currentCookies
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Chyba při generování PoTokenu: {ex.Message}");
+                    }
+                    finally
+                    {
+                        _isGeneratingPoToken = false;
+                    }
+                });
+            }
+#endif
+            return Task.CompletedTask;
         }
 
         public void InitializeClient(IEnumerable<Cookie>? cookies)
@@ -178,35 +248,32 @@ namespace Melodium.Services
             _ytExplodeClient = new YoutubeClient();
             
             // Set up cookies for raw HttpClient if available
-            var handler = new System.Net.Http.HttpClientHandler();
-            string sapisid = null;
+            var handler = new System.Net.Http.HttpClientHandler
+            {
+                UseCookies = false
+            };
 
+            _sapisid = null;
             if (cookies != null)
             {
-                handler.CookieContainer = new System.Net.CookieContainer();
                 foreach (var c in cookies)
                 {
-                    if (c.Name == "SAPISID" || c.Name == "__Secure-3PAPISID")
+                    if (c.Name == "SAPISID")
                     {
-                        sapisid = c.Value;
                         _sapisid = c.Value;
                     }
-                    handler.CookieContainer.Add(new Uri("https://music.youtube.com"), c);
+                    else if (c.Name == "__Secure-3PAPISID" && string.IsNullOrEmpty(_sapisid))
+                    {
+                        _sapisid = c.Value;
+                    }
+                    else if (c.Name == "__Secure-1PAPISID" && string.IsNullOrEmpty(_sapisid))
+                    {
+                        _sapisid = c.Value;
+                    }
                 }
             }
             _httpClient = new System.Net.Http.HttpClient(handler);
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36");
-            _httpClient.DefaultRequestHeaders.Add("X-Origin", "https://music.youtube.com");
-            
-            if (!string.IsNullOrEmpty(sapisid))
-            {
-                long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                string input = $"{timestamp} {sapisid} https://music.youtube.com";
-                using var sha1 = System.Security.Cryptography.SHA1.Create();
-                byte[] hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-                string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"SAPISIDHASH {timestamp}_{hash}");
-            }
         }
 
         public async Task<List<SongModel>> SearchSongsAsync(string query)
@@ -241,6 +308,203 @@ namespace Melodium.Services
             }
 
             return results;
+        }
+
+        public async Task<List<AlbumModel>> SearchAlbumsAsync(string query)
+        {
+            var results = new List<AlbumModel>();
+            try
+            {
+                var searchResults = _client.SearchAsync(query, SearchCategory.Albums);
+                var buffered = await searchResults.FetchItemsAsync(0, 20);
+                foreach (var album in buffered.Cast<AlbumSearchResult>())
+                {
+                    string artistName = album.Artists != null && album.Artists.Any()
+                        ? string.Join(", ", album.Artists.Select(a => a.Name))
+                        : "Neznámý interpret";
+
+                    results.Add(new AlbumModel
+                    {
+                        Id = album.Id,
+                        Title = album.Name,
+                        ArtistName = artistName,
+                        ReleaseYear = album.ReleaseYear,
+                        ThumbnailUrl = album.Thumbnails?.LastOrDefault()?.Url ?? album.Thumbnails?.FirstOrDefault()?.Url
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při hledání alb: {ex.Message}");
+            }
+            return results;
+        }
+
+        public async Task<List<ArtistModel>> SearchArtistsAsync(string query)
+        {
+            var results = new List<ArtistModel>();
+            try
+            {
+                var searchResults = _client.SearchAsync(query, SearchCategory.Artists);
+                var buffered = await searchResults.FetchItemsAsync(0, 20);
+                foreach (var artist in buffered.Cast<ArtistSearchResult>())
+                {
+                    results.Add(new ArtistModel
+                    {
+                        Id = artist.Id,
+                        Name = artist.Name,
+                        Subscribers = artist.PopularityInfo,
+                        ThumbnailUrl = artist.Thumbnails?.LastOrDefault()?.Url ?? artist.Thumbnails?.FirstOrDefault()?.Url
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při hledání interpretů: {ex.Message}");
+            }
+            return results;
+        }
+
+        public async Task<List<PlaylistModel>> SearchPlaylistsAsync(string query)
+        {
+            var results = new List<PlaylistModel>();
+            try
+            {
+                var searchResults = _client.SearchAsync(query, SearchCategory.CommunityPlaylists);
+                var buffered = await searchResults.FetchItemsAsync(0, 20);
+                foreach (var pl in buffered.Cast<CommunityPlaylistSearchResult>())
+                {
+                    results.Add(new PlaylistModel
+                    {
+                        Id = pl.Id,
+                        Title = pl.Name,
+                        Creator = pl.Creator?.Name ?? "YouTube Music",
+                        ThumbnailUrl = pl.Thumbnails?.LastOrDefault()?.Url ?? pl.Thumbnails?.FirstOrDefault()?.Url,
+                        CanEdit = false
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při hledání playlistů: {ex.Message}");
+            }
+            return results;
+        }
+
+        public async Task<bool> LikeSongAsync(string videoId)
+        {
+            try
+            {
+                var body = new {
+                    context = CreateInnertubeContext(),
+                    target = new { videoId = videoId }
+                };
+                var node = await PostInnertubeAsync("like/like", body);
+                return node != null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při lajkování skladby: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DislikeSongAsync(string videoId)
+        {
+            try
+            {
+                var body = new {
+                    context = CreateInnertubeContext(),
+                    target = new { videoId = videoId }
+                };
+                var node = await PostInnertubeAsync("like/dislike", body);
+                return node != null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při dislajkování skladby: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> RemoveLikeAsync(string videoId)
+        {
+            try
+            {
+                var body = new {
+                    context = CreateInnertubeContext(),
+                    target = new { videoId = videoId }
+                };
+                var node = await PostInnertubeAsync("like/removelike", body);
+                return node != null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při odebrání hodnocení skladby: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<SongModel>> GetMoodSongsAsync(string mood)
+        {
+            var results = new List<SongModel>();
+            try
+            {
+                string query = mood switch
+                {
+                    "Relax" or "Chill" => "chill relaxing lofi music",
+                    "Cvičení" or "Workout" => "workout motivation gym music",
+                    "Energie" => "high energy dance party music",
+                    "Soustředění" or "Focus" => "lofi deep focus study instrumental music",
+                    "Párty" => "party club dance hits",
+                    "Rock" => "rock alternative greatest hits",
+                    "Pop" => "top pop hits 2026",
+                    "Hip-Hop" => "hip hop rap top tracks",
+                    "Jazz" => "smooth jazz cafe relaxing",
+                    "Elektronika" => "electronic edm synthwave tracks",
+                    _ => $"{mood} music"
+                };
+
+                return await SearchSongsAsync(query);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při stahování nálady {mood}: {ex.Message}");
+            }
+            return results;
+        }
+
+        public async Task<List<SongModel>> GetExploreChartsAsync()
+        {
+            var results = new List<SongModel>();
+            try
+            {
+                var body = new {
+                    context = CreateInnertubeContext(),
+                    browseId = "FEmusic_charts"
+                };
+
+                var content = new System.Net.Http.StringContent(System.Text.Json.JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("https://music.youtube.com/youtubei/v1/browse", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonStr = await response.Content.ReadAsStringAsync();
+                    var root = System.Text.Json.Nodes.JsonNode.Parse(jsonStr);
+                    ExtractSongsFromNode(root, results);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při stahování Explore žebříčků: {ex.Message}");
+            }
+
+            if (results.Count < 5)
+            {
+                var fallback = await SearchSongsAsync("Top Hits Global & Czech 2026");
+                results.AddRange(fallback);
+            }
+
+            return results.GroupBy(r => r.VideoId).Select(g => g.First()).Take(30).ToList();
         }
 
         public async Task<string?> GetAudioStreamUrlAsync(string videoId, string? fallbackQuery = null)
@@ -409,8 +673,12 @@ namespace Melodium.Services
                     {
                         foreach (var playlist in playlists)
                         {
-                            var creatorName = playlist.Creator?.Name ?? "Komunita";
-                            bool canEdit = IsUserCreator(creatorName);
+                            var creatorName = playlist.Creator?.Name;
+                            bool isOwned = string.IsNullOrWhiteSpace(creatorName) || IsUserCreator(creatorName);
+                            if (string.IsNullOrWhiteSpace(creatorName))
+                            {
+                                creatorName = !string.IsNullOrEmpty(_userChannelName) ? _userChannelName : "Vy";
+                            }
 
                             results.Add(new PlaylistModel
                             {
@@ -419,7 +687,7 @@ namespace Melodium.Services
                                 ThumbnailUrl = playlist.Thumbnails?.FirstOrDefault()?.Url,
                                 SongCount = playlist.SongCount,
                                 Creator = creatorName,
-                                CanEdit = canEdit
+                                CanEdit = isOwned
                             });
                         }
                     }
@@ -428,6 +696,23 @@ namespace Melodium.Services
                 {
                     Console.WriteLine($"Chyba při záložním stahování playlistů z knihovny: {ex.Message}");
                 }
+            }
+
+            // Vždy vložit "Oblíbené skladby" (Liked Music / VLLM) jako první položku knihovny pro přihlášeného uživatele
+            bool isLoggedIn = (_currentCookies != null && _currentCookies.Any()) || !string.IsNullOrEmpty(_sapisid);
+            if (isLoggedIn && !seenIds.Contains("VLLM") && !seenIds.Contains("LM"))
+            {
+                results.Insert(0, new PlaylistModel
+                {
+                    Id = "VLLM",
+                    Title = "Oblíbené skladby",
+                    Creator = "Automatický playlist",
+                    Description = "Skladby, které jste označili jako oblíbené v YouTube Music",
+                    ThumbnailUrl = "https://www.gstatic.com/youtube/media/ytm/images/pbg/liked-songs-delhi-1200.png",
+                    CanEdit = true
+                });
+                seenIds.Add("VLLM");
+                seenIds.Add("LM");
             }
 
             return results;
@@ -520,6 +805,11 @@ namespace Melodium.Services
                                         ?? headerNode?["musicResponsiveHeaderRenderer"]
                                         ?? headerNode?["musicDetailHeaderRenderer"];
 
+                    if (responsiveHeader == null)
+                    {
+                        responsiveHeader = root?["contents"]?["twoColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["contents"]?[0]?["musicResponsiveHeaderRenderer"];
+                    }
+
                     if (responsiveHeader != null)
                     {
                         var titleRuns = responsiveHeader?["title"]?["runs"]?.AsArray();
@@ -548,6 +838,21 @@ namespace Melodium.Services
 
                         var thumbs = responsiveHeader?["thumbnail"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
                         result.Playlist.ThumbnailUrl = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
+                    }
+
+                    bool isLikedMusic = playlistId.Equals("VLLM", StringComparison.OrdinalIgnoreCase) ||
+                                       playlistId.Equals("LM", StringComparison.OrdinalIgnoreCase) ||
+                                       browseId.Equals("VLLM", StringComparison.OrdinalIgnoreCase);
+
+                    if (isLikedMusic)
+                    {
+                        canEdit = true;
+                        if (string.IsNullOrWhiteSpace(result.Playlist.Title))
+                            result.Playlist.Title = "Oblíbené skladby";
+                        if (string.IsNullOrWhiteSpace(result.Playlist.ThumbnailUrl))
+                            result.Playlist.ThumbnailUrl = "https://www.gstatic.com/youtube/media/ytm/images/pbg/liked-songs-delhi-1200.png";
+                        if (string.IsNullOrWhiteSpace(result.Playlist.Creator))
+                            result.Playlist.Creator = "Automatický playlist";
                     }
 
                     if (!canEdit)
@@ -619,6 +924,11 @@ namespace Melodium.Services
             return details.Songs;
         }
 
+        public async Task<PlaylistDetailsResult> GetLikedSongsAsync()
+        {
+            return await GetPlaylistDetailsAsync("VLLM");
+        }
+
         public async Task<string?> CreatePlaylistAsync(string title, string description = "", string privacyStatus = "PRIVATE")
         {
             await EnsureInitializedAsync();
@@ -654,7 +964,17 @@ namespace Melodium.Services
             await EnsureInitializedAsync();
             try
             {
-                string cleanId = playlistId.StartsWith("VL") ? playlistId.Substring(2) : playlistId;
+                string cleanId = playlistId.StartsWith("VL", StringComparison.OrdinalIgnoreCase) 
+                    ? playlistId.Substring(2) 
+                    : playlistId;
+
+                // Oblíbené skladby na YouTube Music používají koncový bod like/like
+                if (cleanId.Equals("LM", StringComparison.OrdinalIgnoreCase) || 
+                    cleanId.Equals("VLLM", StringComparison.OrdinalIgnoreCase))
+                {
+                    return await LikeSongAsync(videoId);
+                }
+
                 var body = new
                 {
                     context = CreateInnertubeContext(),
@@ -672,8 +992,26 @@ namespace Melodium.Services
                 var root = await PostInnertubeAsync("browse/edit_playlist", body);
                 if (root != null)
                 {
+                    if (root["error"] != null)
+                    {
+                        string errMsg = root["error"]?["message"]?.ToString() ?? "Chyba API";
+                        System.Diagnostics.Debug.WriteLine($"[MelodiumService] Chyba z YouTube Music při přidávání skladby: {errMsg}");
+                        Console.WriteLine($"[MelodiumService] Chyba z YouTube Music při přidávání skladby: {errMsg}");
+                        return false;
+                    }
+
                     string? status = root?["status"]?.ToString();
-                    return status != "STATUS_FAILED";
+                    if (!string.IsNullOrEmpty(status))
+                    {
+                        return status == "STATUS_SUCCEEDED" || status == "OK";
+                    }
+
+                    if (root["actions"] != null || root["playlistEditResults"] != null)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
             }
             catch (Exception ex)
@@ -683,18 +1021,98 @@ namespace Melodium.Services
             return false;
         }
 
+        public async Task<List<PlaylistModel>> GetAddToPlaylistOptionsAsync(string videoId)
+        {
+            await EnsureInitializedAsync();
+            var results = new List<PlaylistModel>();
+            var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                var body = new
+                {
+                    context = CreateInnertubeContext(),
+                    videoIds = new[] { videoId }
+                };
+
+                var root = await PostInnertubeAsync("playlist/get_add_to_playlist", body);
+                if (root != null)
+                {
+                    ExtractAddToPlaylistOptions(root, results, seenIds);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při volání playlist/get_add_to_playlist: {ex.Message}");
+            }
+
+            return results;
+        }
+
+        private void ExtractAddToPlaylistOptions(System.Text.Json.Nodes.JsonNode? node, List<PlaylistModel> results, HashSet<string> seenIds)
+        {
+            if (node == null) return;
+
+            if (node is System.Text.Json.Nodes.JsonObject obj)
+            {
+                if (obj.ContainsKey("playlistAddToOptionRenderer"))
+                {
+                    var renderer = obj["playlistAddToOptionRenderer"];
+                    var playlistId = renderer?["playlistId"]?.ToString();
+                    if (!string.IsNullOrEmpty(playlistId) && !seenIds.Contains(playlistId))
+                    {
+                        seenIds.Add(playlistId);
+                        var titleRuns = renderer?["title"]?["runs"]?.AsArray();
+                        string title = titleRuns != null
+                            ? string.Join("", titleRuns.Select(r => r?["text"]?.ToString()))
+                            : renderer?["title"]?["simpleText"]?.ToString() ?? "Playlist";
+
+                        results.Add(new PlaylistModel
+                        {
+                            Id = playlistId,
+                            Title = title,
+                            Creator = !string.IsNullOrEmpty(_userChannelName) ? _userChannelName : "Vy",
+                            CanEdit = true
+                        });
+                    }
+                    return;
+                }
+
+                foreach (var prop in obj)
+                {
+                    ExtractAddToPlaylistOptions(prop.Value, results, seenIds);
+                }
+            }
+            else if (node is System.Text.Json.Nodes.JsonArray arr)
+            {
+                foreach (var item in arr)
+                {
+                    ExtractAddToPlaylistOptions(item, results, seenIds);
+                }
+            }
+        }
+
         public async Task<bool> RemoveSongFromPlaylistAsync(string playlistId, string? setVideoId, string videoId)
         {
             await EnsureInitializedAsync();
             try
             {
-                string cleanId = playlistId.StartsWith("VL") ? playlistId.Substring(2) : playlistId;
+                string cleanId = playlistId.StartsWith("VL", StringComparison.OrdinalIgnoreCase) 
+                    ? playlistId.Substring(2) 
+                    : playlistId;
+
+                if (cleanId.Equals("LM", StringComparison.OrdinalIgnoreCase) || 
+                    cleanId.Equals("VLLM", StringComparison.OrdinalIgnoreCase))
+                {
+                    return await DislikeSongAsync(videoId);
+                }
+
                 object actionObj;
                 if (!string.IsNullOrEmpty(setVideoId))
                 {
                     actionObj = new
                     {
-                        action = "ACTION_REMOVE_VIDEO_BY_SET_VIDEO_ID",
+                        action = "ACTION_REMOVE_VIDEO",
                         setVideoId = setVideoId
                     };
                 }
@@ -717,8 +1135,13 @@ namespace Melodium.Services
                 var root = await PostInnertubeAsync("browse/edit_playlist", body);
                 if (root != null)
                 {
+                    if (root["error"] != null) return false;
                     string? status = root?["status"]?.ToString();
-                    return status != "STATUS_FAILED";
+                    if (!string.IsNullOrEmpty(status))
+                    {
+                        return status == "STATUS_SUCCEEDED" || status == "OK";
+                    }
+                    return root["actions"] != null || root["playlistEditResults"] != null;
                 }
             }
             catch (Exception ex)
@@ -814,32 +1237,265 @@ namespace Melodium.Services
         }
         // --- Nové funkce pro Domů a Rádio ---
 
+        public async Task<List<HomeSectionModel>> GetHomeSectionsAsync()
+        {
+            await EnsureInitializedAsync();
+            var sections = new List<HomeSectionModel>();
+
+            try
+            {
+                var body = new
+                {
+                    context = CreateInnertubeContext(),
+                    browseId = "FEmusic_home"
+                };
+
+                var root = await PostInnertubeAsync("browse", body);
+                if (root != null)
+                {
+                    var sectionNodes = root?["contents"]?["singleColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["contents"]?.AsArray();
+                    if (sectionNodes != null)
+                    {
+                        ParseHomeSections(sectionNodes, sections);
+                    }
+
+                    // Načíst 1-2 stránky pokračování pro další sekce (Novinky, Quick picks, atd.)
+                    var continuations = root?["contents"]?["singleColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["continuations"]?.AsArray();
+                    string? ctoken = continuations?[0]?["nextContinuationData"]?["continuation"]?.ToString();
+
+                    int continuationPages = 0;
+                    while (!string.IsNullOrEmpty(ctoken) && continuationPages < 2)
+                    {
+                        continuationPages++;
+                        var contBody = new
+                        {
+                            context = CreateInnertubeContext()
+                        };
+                        var contRoot = await PostInnertubeAsync($"browse?continuation={ctoken}", contBody);
+                        if (contRoot != null)
+                        {
+                            var contItems = contRoot?["continuationContents"]?["sectionListContinuation"]?["contents"]?.AsArray();
+                            if (contItems != null)
+                            {
+                                ParseHomeSections(contItems, sections);
+                            }
+                            ctoken = contRoot?["continuationContents"]?["sectionListContinuation"]?["continuations"]?[0]?["nextContinuationData"]?["continuation"]?.ToString();
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Chyba při stahování Home sekcí: {ex.Message}");
+                Console.WriteLine($"Chyba při stahování Home sekcí: {ex.Message}");
+            }
+
+            return sections;
+        }
+
+        private void ParseHomeSections(System.Text.Json.Nodes.JsonArray sectionNodes, List<HomeSectionModel> sections)
+        {
+            foreach (var sNode in sectionNodes)
+            {
+                var carousel = sNode?["musicCarouselShelfRenderer"];
+                if (carousel == null) continue;
+
+                var header = carousel?["header"]?["musicCarouselShelfBasicHeaderRenderer"];
+                var titleRuns = header?["title"]?["runs"]?.AsArray();
+                string? title = titleRuns != null 
+                    ? string.Join("", titleRuns.Select(r => r?["text"]?.ToString()))
+                    : header?["title"]?["simpleText"]?.ToString();
+
+                if (string.IsNullOrWhiteSpace(title)) continue;
+
+                var strapRuns = header?["strapline"]?["runs"]?.AsArray();
+                string? strapline = strapRuns != null
+                    ? string.Join("", strapRuns.Select(r => r?["text"]?.ToString()))
+                    : header?["strapline"]?["simpleText"]?.ToString();
+
+                var section = new HomeSectionModel
+                {
+                    Title = title,
+                    Strapline = strapline
+                };
+
+                var contents = carousel?["contents"]?.AsArray();
+                if (contents != null)
+                {
+                    foreach (var c in contents)
+                    {
+                        var twoRow = c?["musicTwoRowItemRenderer"];
+                        if (twoRow != null)
+                        {
+                            var itemTitleRuns = twoRow?["title"]?["runs"]?.AsArray();
+                            string itemTitle = itemTitleRuns != null 
+                                ? string.Join("", itemTitleRuns.Select(r => r?["text"]?.ToString()))
+                                : twoRow?["title"]?["simpleText"]?.ToString() ?? "";
+
+                            var subRuns = twoRow?["subtitle"]?["runs"]?.AsArray();
+                            string itemSub = subRuns != null
+                                ? string.Join("", subRuns.Select(r => r?["text"]?.ToString()))
+                                : twoRow?["subtitle"]?["simpleText"]?.ToString() ?? "";
+
+                            var thumbs = twoRow?["thumbnailRenderer"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
+                            string? thumb = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
+
+                            var browseEndpoint = twoRow?["navigationEndpoint"]?["browseEndpoint"];
+                            string? browseId = browseEndpoint?["browseId"]?.ToString();
+                            string? pageType = browseEndpoint?["browseEndpointContextSupportedConfigs"]?["browseEndpointContextMusicConfig"]?["pageType"]?.ToString();
+                            string? watchVid = twoRow?["navigationEndpoint"]?["watchEndpoint"]?["videoId"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(browseId))
+                            {
+                                if (browseId.StartsWith("VL") || browseId.StartsWith("PL") || browseId.StartsWith("RD") || pageType == "MUSIC_PAGE_TYPE_PLAYLIST")
+                                {
+                                    string cleanPlaylistId = browseId.StartsWith("VL") ? browseId.Substring(2) : browseId;
+                                    var playlist = new PlaylistModel
+                                    {
+                                        Id = cleanPlaylistId,
+                                        Title = itemTitle,
+                                        ThumbnailUrl = thumb,
+                                        Creator = itemSub
+                                    };
+                                    section.Items.Add(new HomeItemModel
+                                    {
+                                        Type = HomeItemType.Playlist,
+                                        Id = cleanPlaylistId,
+                                        Title = itemTitle,
+                                        Subtitle = itemSub,
+                                        ThumbnailUrl = thumb,
+                                        Playlist = playlist
+                                    });
+                                    continue;
+                                }
+                                else if (pageType == "MUSIC_PAGE_TYPE_ALBUM" || browseId.StartsWith("MPREb_"))
+                                {
+                                    var album = new AlbumModel
+                                    {
+                                        Id = browseId,
+                                        Title = itemTitle,
+                                        ArtistName = itemSub,
+                                        ThumbnailUrl = thumb
+                                    };
+                                    section.Items.Add(new HomeItemModel
+                                    {
+                                        Type = HomeItemType.Album,
+                                        Id = browseId,
+                                        Title = itemTitle,
+                                        Subtitle = itemSub,
+                                        ThumbnailUrl = thumb,
+                                        Album = album
+                                    });
+                                    continue;
+                                }
+                                else if (pageType == "MUSIC_PAGE_TYPE_ARTIST" || browseId.StartsWith("UC"))
+                                {
+                                    var artist = new ArtistModel
+                                    {
+                                        Id = browseId,
+                                        Name = itemTitle,
+                                        Subscribers = itemSub,
+                                        ThumbnailUrl = thumb
+                                    };
+                                    section.Items.Add(new HomeItemModel
+                                    {
+                                        Type = HomeItemType.Artist,
+                                        Id = browseId,
+                                        Title = itemTitle,
+                                        Subtitle = itemSub,
+                                        ThumbnailUrl = thumb,
+                                        Artist = artist
+                                    });
+                                    continue;
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(watchVid))
+                            {
+                                var song = new SongModel
+                                {
+                                    VideoId = watchVid,
+                                    Title = itemTitle,
+                                    Artist = itemSub,
+                                    ThumbnailUrl = thumb
+                                };
+                                section.Items.Add(new HomeItemModel
+                                {
+                                    Type = HomeItemType.Song,
+                                    Id = watchVid,
+                                    Title = itemTitle,
+                                    Subtitle = itemSub,
+                                    ThumbnailUrl = thumb,
+                                    Song = song
+                                });
+                                continue;
+                            }
+                        }
+
+                        var responsive = c?["musicResponsiveListItemRenderer"];
+                        if (responsive != null)
+                        {
+                            var tRuns = responsive?["flexColumns"]?[0]?["musicResponsiveListItemFlexColumnRenderer"]?["text"]?["runs"]?.AsArray();
+                            string t = tRuns != null ? string.Join("", tRuns.Select(r => r?["text"]?.ToString())) : "";
+
+                            var sRuns = responsive?["flexColumns"]?[1]?["musicResponsiveListItemFlexColumnRenderer"]?["text"]?["runs"]?.AsArray();
+                            string subText = sRuns != null ? string.Join("", sRuns.Select(r => r?["text"]?.ToString())) : "";
+
+                            var thumbs = responsive?["thumbnail"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
+                            string? thumb = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
+
+                            string? vid = responsive?["playlistItemData"]?["videoId"]?.ToString()
+                                       ?? responsive?["navigationEndpoint"]?["watchEndpoint"]?["videoId"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(vid))
+                            {
+                                var song = new SongModel
+                                {
+                                    VideoId = vid,
+                                    Title = t,
+                                    Artist = subText,
+                                    ThumbnailUrl = thumb
+                                };
+                                section.Items.Add(new HomeItemModel
+                                {
+                                    Type = HomeItemType.Song,
+                                    Id = vid,
+                                    Title = t,
+                                    Subtitle = subText,
+                                    ThumbnailUrl = thumb,
+                                    Song = song
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (section.Items.Count > 0)
+                {
+                    sections.Add(section);
+                }
+            }
+        }
+
         public async Task<List<SongModel>> GetHomeRecommendationsAsync()
         {
             var results = new List<SongModel>();
             try
             {
                 var body = new {
-                    context = new {
-                        client = new {
-                            clientName = "WEB_REMIX",
-                            clientVersion = "1.20230508.01.00",
-                            hl = "cs",
-                            gl = "CZ",
-                            visitorData = _visitorData
-                        }
-                    },
+                    context = CreateInnertubeContext(),
                     browseId = "FEmusic_home"
                 };
 
-                var content = new System.Net.Http.StringContent(System.Text.Json.JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync("https://music.youtube.com/youtubei/v1/browse", content);
-                response.EnsureSuccessStatusCode();
-
-                var jsonStr = await response.Content.ReadAsStringAsync();
-                var root = System.Text.Json.Nodes.JsonNode.Parse(jsonStr);
-                
-                ExtractSongsFromNode(root, results);
+                var root = await PostInnertubeAsync("browse", body);
+                if (root != null)
+                {
+                    ExtractSongsFromNode(root, results);
+                }
             }
             catch (Exception ex)
             {
@@ -986,7 +1642,15 @@ namespace Melodium.Services
             }
 
             if (!string.IsNullOrWhiteSpace(_userChannelName) &&
-                creator.Equals(_userChannelName.Trim(), StringComparison.OrdinalIgnoreCase))
+                (creator.Equals(_userChannelName.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                 creator.Equals(_userChannelName.Trim().TrimStart('@'), StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_userChannelHandle) &&
+                (creator.Equals(_userChannelHandle.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                 creator.Equals(_userChannelHandle.Trim().TrimStart('@'), StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -1060,11 +1724,19 @@ namespace Melodium.Services
                             }
 
                             string jsonStr = renderer?.ToJsonString() ?? "";
-                            bool canEdit = jsonStr.Contains("deletePlaylistEndpoint") ||
+                            bool canEdit = jsonStr.Contains("playlistEditorEndpoint") ||
+                                           jsonStr.Contains("deletePlaylistEndpoint") ||
                                            jsonStr.Contains("editPlaylistEndpoint") ||
                                            jsonStr.Contains("\"iconType\":\"EDIT\"") ||
+                                           jsonStr.Contains("\"iconType\":\"DELETE\"") ||
+                                           jsonStr.Contains("USER_IMAGE_TYPE_OWNER") ||
                                            jsonStr.Contains("musicPlaylistEditHeaderRenderer") ||
                                            IsUserCreator(creator);
+
+                            if (canEdit && (creator == "YouTube Music" || creator == "Playlist" || creator == "Seznam skladeb" || string.IsNullOrWhiteSpace(creator)))
+                            {
+                                creator = !string.IsNullOrEmpty(_userChannelName) ? _userChannelName : "Vy";
+                            }
 
                             var thumbs = renderer?["thumbnailRenderer"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
                             string? thumb = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
@@ -1115,11 +1787,19 @@ namespace Melodium.Services
                             }
 
                             string jsonStr = renderer?.ToJsonString() ?? "";
-                            bool canEdit = jsonStr.Contains("deletePlaylistEndpoint") ||
+                            bool canEdit = jsonStr.Contains("playlistEditorEndpoint") ||
+                                           jsonStr.Contains("deletePlaylistEndpoint") ||
                                            jsonStr.Contains("editPlaylistEndpoint") ||
                                            jsonStr.Contains("\"iconType\":\"EDIT\"") ||
+                                           jsonStr.Contains("\"iconType\":\"DELETE\"") ||
+                                           jsonStr.Contains("USER_IMAGE_TYPE_OWNER") ||
                                            jsonStr.Contains("musicPlaylistEditHeaderRenderer") ||
                                            IsUserCreator(creator);
+
+                            if (canEdit && (creator == "YouTube Music" || creator == "Playlist" || creator == "Seznam skladeb" || string.IsNullOrWhiteSpace(creator)))
+                            {
+                                creator = !string.IsNullOrEmpty(_userChannelName) ? _userChannelName : "Vy";
+                            }
 
                             var thumbs = renderer?["thumbnail"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
                             string? thumb = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();

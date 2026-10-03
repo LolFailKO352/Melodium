@@ -71,6 +71,7 @@ public partial class MainViewModel : ObservableObject
     public static event EventHandler<CultureInfo>? LanguageChanged;
 
     [ObservableProperty] public partial string TextHome { get; set; } = "Domů";
+    [ObservableProperty] public partial string TextExplore { get; set; } = "Objevovat 🎶";
     [ObservableProperty] public partial string TextSearch { get; set; } = "Hledat";
     [ObservableProperty] public partial string TextLibrary { get; set; } = "Knihovna";
     [ObservableProperty] public partial string TextQueue { get; set; } = "Fronta";
@@ -88,7 +89,7 @@ public partial class MainViewModel : ObservableObject
         _discordRpcService?.HandleSettingsChanged();
     }
 
-    [ObservableProperty] public partial bool IsCloseToTrayEnabled { get; set; } = true;
+    [ObservableProperty] public partial bool IsCloseToTrayEnabled { get; set; } = false;
     [ObservableProperty] public partial string TextCloseToTray { get; set; } = "Zavřít do oznamovací oblasti";
     [ObservableProperty] public partial string TextCloseToTrayDesc { get; set; } = "Při kliknutí na křížek (zavření okna) zůstane aplikace spuštěná v oznamovací oblasti na hlavním panelu.";
 
@@ -104,7 +105,7 @@ public partial class MainViewModel : ObservableObject
     // --- Aktualizace aplikace ---
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AppVersionDisplay))]
-    public partial string CurrentAppVersion { get; set; } = "1.4.0";
+    public partial string CurrentAppVersion { get; set; } = "1.5.0";
 
     public string AppVersionDisplay => $"Verze {CurrentAppVersion} (Windows App SDK)";
 
@@ -159,6 +160,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string TextLockedLibraryDesc { get; set; } = "Chcete-li zobrazit své skladby, playlisty a alba z Melodium, musíte se přihlásit.";
     [ObservableProperty] public partial string TextGoToLogin { get; set; } = "Přejít k přihlášení";
     [ObservableProperty] public partial string TextMusic { get; set; } = "Hudba";
+    [ObservableProperty] public partial string TextLikedSongs { get; set; } = "Oblíbené";
     [ObservableProperty] public partial string TextSongs { get; set; } = "Skladby";
     [ObservableProperty] public partial string TextPlaylists { get; set; } = "Playlisty";
     [ObservableProperty] public partial string TextAlbums { get; set; } = "Alba";
@@ -198,6 +200,7 @@ public partial class MainViewModel : ObservableObject
         { nameof(TextHome), "Domů" },
         { nameof(TextSearch), "Hledat" },
         { nameof(TextLibrary), "Knihovna" },
+        { nameof(TextLikedSongs), "Oblíbené" },
         { nameof(TextQueue), "Fronta" },
         { nameof(TextAccount), "Účet" },
         { nameof(TextLogout), "Odhlásit" },
@@ -499,7 +502,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [ObservableProperty]
-    public partial string LibraryTab { get; set; } = "Songs"; // Songs, Playlists, Albums, Artists
+    public partial string LibraryTab { get; set; } = "Liked"; // Liked, Songs, Playlists, Albums, Artists
 
     [RelayCommand]
     private void SetLibraryTab(string tabName)
@@ -581,7 +584,20 @@ public partial class MainViewModel : ObservableObject
     public partial bool IsSearchingSongsToAdd { get; set; }
 
     private string? _previousView;
+    public ObservableCollection<HomeSectionModel> HomeSections { get; } = new();
+
+    [ObservableProperty]
+    public partial bool HasHomeSections { get; set; }
+
     public ObservableCollection<SongModel> HomeRecommendations { get; } = new();
+    public ObservableCollection<SongModel> LikedSongs { get; } = new();
+
+    [ObservableProperty]
+    public partial bool IsLikedSongsLoading { get; set; }
+
+    [ObservableProperty]
+    public partial int LikedSongsCount { get; set; }
+
     public ObservableCollection<SongModel> LibrarySongs { get; } = new();
     public ObservableCollection<PlaylistModel> LibraryPlaylists { get; } = new();
     public ObservableCollection<PlaylistModel> EditablePlaylists { get; } = new();
@@ -614,6 +630,27 @@ public partial class MainViewModel : ObservableObject
     };
 
     public string QueueCountText => $"{TextSongsInQueueLabel} {PlaybackQueue.Count}";
+
+    // --- Přehrávač: Autoplay & Like/Dislike 🎶 ---
+    [ObservableProperty] public partial bool IsAutoplayEnabled { get; set; } = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentSongLikeGlyph))]
+    public partial bool IsCurrentSongLiked { get; set; }
+
+    public string CurrentSongLikeGlyph => IsCurrentSongLiked ? "\uEB52" : "\uEB51";
+
+    // --- Explore & Náladové kategorie 🎶 ---
+    [ObservableProperty] public partial ObservableCollection<SongModel> ExploreCharts { get; set; } = new();
+    [ObservableProperty] public partial ObservableCollection<MoodModel> MoodCategories { get; set; } = new();
+    [ObservableProperty] public partial string SelectedMood { get; set; } = "Vše";
+    [ObservableProperty] public partial bool IsExploreLoading { get; set; }
+
+    // --- Rozšířené vyhledávací filtry ---
+    [ObservableProperty] public partial string SelectedSearchFilter { get; set; } = "Vše";
+    [ObservableProperty] public partial ObservableCollection<AlbumModel> SearchResultsAlbums { get; set; } = new();
+    [ObservableProperty] public partial ObservableCollection<ArtistModel> SearchResultsArtists { get; set; } = new();
+    [ObservableProperty] public partial ObservableCollection<PlaylistModel> SearchResultsPlaylists { get; set; } = new();
 
     [ObservableProperty]
     public partial bool IsKaraokeMode { get; set; }
@@ -698,6 +735,79 @@ public partial class MainViewModel : ObservableObject
         IsBusy = false;
     }
 
+    [RelayCommand]
+    public async Task PlayLikedSongsAsync()
+    {
+        if (LikedSongs.Count == 0) return;
+
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+
+        foreach (var song in LikedSongs)
+        {
+            PlaybackQueue.Add(song);
+            _originalQueue.Add(song);
+        }
+
+        CurrentQueueIndex = 0;
+        await PlayQueueCurrentSongAsync();
+    }
+
+    [RelayCommand]
+    public async Task ShuffleLikedSongsAsync()
+    {
+        if (LikedSongs.Count == 0) return;
+
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+
+        foreach (var song in LikedSongs)
+        {
+            PlaybackQueue.Add(song);
+            _originalQueue.Add(song);
+        }
+
+        CurrentQueueIndex = 0;
+        IsShuffle = true;
+        ApplyShuffle();
+        await PlayQueueCurrentSongAsync();
+    }
+
+    [RelayCommand]
+    public async Task OpenLikedSongsPlaylistAsync()
+    {
+        var likedPlaylist = new PlaylistModel
+        {
+            Id = "VLLM",
+            Title = "Oblíbené skladby",
+            Creator = "Automatický playlist",
+            Description = "Skladby, které jste označili jako oblíbené v YouTube Music",
+            ThumbnailUrl = "https://www.gstatic.com/youtube/media/ytm/images/pbg/liked-songs-delhi-1200.png",
+            SongCount = LikedSongsCount > 0 ? LikedSongsCount : LikedSongs.Count,
+            CanEdit = true
+        };
+        await OpenPlaylistAsync(likedPlaylist);
+    }
+
+    [RelayCommand]
+    public async Task PlayLikedSongItemAsync(SongModel? song)
+    {
+        if (song == null) return;
+
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+
+        foreach (var s in LikedSongs)
+        {
+            PlaybackQueue.Add(s);
+            _originalQueue.Add(s);
+        }
+
+        int index = LikedSongs.IndexOf(song);
+        CurrentQueueIndex = index >= 0 ? index : 0;
+        await PlayQueueCurrentSongAsync();
+    }
+
     private readonly DiscordRpcService _discordRpcService;
     private readonly LyricsService _lyricsService;
 
@@ -713,7 +823,7 @@ public partial class MainViewModel : ObservableObject
         CurrentAppVersion = UpdateService.GetCurrentVersionDisplay();
 
         IsDiscordRpcEnabled = Preferences.Default.Get("IsDiscordRpcEnabled", false);
-        IsCloseToTrayEnabled = Preferences.Default.Get("IsCloseToTrayEnabled", true);
+        IsCloseToTrayEnabled = Preferences.Default.Get("IsCloseToTrayEnabled", false);
         _discordRpcService.HandleSettingsChanged();
 
         _audioService.Volume = (float)Volume;
@@ -739,10 +849,7 @@ public partial class MainViewModel : ObservableObject
         var savedLang = Preferences.Default.Get("AppLanguage", "cs");
         SelectedLanguage = Languages.FirstOrDefault(c => c.Name == savedLang) ?? Languages.FirstOrDefault(c => c.TwoLetterISOLanguageName == "cs");
 
-        // Načteme domovskou obrazovku nezávisle na přihlášení
-        _ = Task.Run(LoadHomeRecommendationsAsync);
-
-        // Načteme uložené přihlášení při startu
+        // Načteme uložené přihlášení a knihovnu při startu
         _ = Task.Run(LoadSavedSessionAsync);
 
         // Zkontrolujeme dostupnost aktualizací na pozadí při startu
@@ -906,6 +1013,11 @@ public partial class MainViewModel : ObservableObject
             _previousView = CurrentView;
         }
         CurrentView = viewName;
+
+        if (viewName == "Explore")
+        {
+            _ = LoadExploreDataAsync();
+        }
     }
 
     [RelayCommand]
@@ -1021,19 +1133,37 @@ public partial class MainViewModel : ObservableObject
         CurrentView = "Search";
         IsBusy = true;
         SearchResults.Clear();
+        SearchResultsAlbums.Clear();
+        SearchResultsArtists.Clear();
+        SearchResultsPlaylists.Clear();
         StatusMessage = $"Vyhledávám: {SearchQuery}...";
 
         await _ytService.EnsureInitializedAsync();
-        var songs = await _ytService.SearchSongsAsync(SearchQuery);
 
-        HasSearched = true;
-        foreach (var song in songs)
+        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Skladby")
         {
-            SearchResults.Add(song);
+            var songs = await _ytService.SearchSongsAsync(SearchQuery);
+            foreach (var song in songs) SearchResults.Add(song);
+        }
+        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Alba")
+        {
+            var albums = await _ytService.SearchAlbumsAsync(SearchQuery);
+            foreach (var alb in albums) SearchResultsAlbums.Add(alb);
+        }
+        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Interpreti")
+        {
+            var artists = await _ytService.SearchArtistsAsync(SearchQuery);
+            foreach (var art in artists) SearchResultsArtists.Add(art);
+        }
+        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Playlisty")
+        {
+            var playlists = await _ytService.SearchPlaylistsAsync(SearchQuery);
+            foreach (var pl in playlists) SearchResultsPlaylists.Add(pl);
         }
 
+        HasSearched = true;
         OnPropertyChanged(nameof(IsSearchResultsEmpty));
-        StatusMessage = $"Hledání dokončeno. Nalezeno {songs.Count} skladeb.";
+        StatusMessage = $"Hledání dokončeno 🎶.";
         IsBusy = false;
     }
 
@@ -1056,10 +1186,91 @@ public partial class MainViewModel : ObservableObject
     public void UpdateEditablePlaylists()
     {
         EditablePlaylists.Clear();
-        foreach (var p in LibraryPlaylists.Where(p => p.CanEdit || _ytService.IsUserCreator(p.Creator) || (!string.IsNullOrEmpty(UserProfileName) && UserProfileName != "Nepřihlášen" && UserProfileName != "Můj účet" && string.Equals(p.Creator, UserProfileName, StringComparison.OrdinalIgnoreCase))))
+        foreach (var p in LibraryPlaylists)
         {
-            p.CanEdit = true;
-            EditablePlaylists.Add(p);
+            bool isEditable = p.CanEdit || 
+                _ytService.IsUserCreator(p.Creator) || 
+                (!string.IsNullOrEmpty(UserProfileName) && 
+                 UserProfileName != "Nepřihlášen" && 
+                 UserProfileName != "Můj účet" && 
+                 (string.Equals(p.Creator, UserProfileName, StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(p.Creator, UserProfileName.TrimStart('@'), StringComparison.OrdinalIgnoreCase)));
+
+            if (!isEditable && !string.IsNullOrEmpty(p.Creator))
+            {
+                if (p.Creator.Equals("Vy", StringComparison.OrdinalIgnoreCase) ||
+                    p.Creator.Equals("You", StringComparison.OrdinalIgnoreCase) ||
+                    p.Creator.Equals("Já", StringComparison.OrdinalIgnoreCase) ||
+                    p.Creator.Equals("Me", StringComparison.OrdinalIgnoreCase))
+                {
+                    isEditable = true;
+                }
+            }
+
+            if (isEditable)
+            {
+                p.CanEdit = true;
+                EditablePlaylists.Add(p);
+            }
+        }
+
+        // Pokud stále nemáme žádný upravitelný playlist, ale knihovna má uživatelské playlisty (neoficiální, ne-rádia, ne-alba)
+        if (EditablePlaylists.Count == 0)
+        {
+            foreach (var p in LibraryPlaylists.Where(p => 
+                !p.Id.StartsWith("OLAK") && 
+                !p.Id.StartsWith("RD") && 
+                !p.Id.StartsWith("MPREb_") && 
+                !string.Equals(p.Creator, "YouTube Music", StringComparison.OrdinalIgnoreCase)))
+            {
+                p.CanEdit = true;
+                EditablePlaylists.Add(p);
+            }
+        }
+    }
+
+    public async Task RefreshEditablePlaylistsAsync(string? videoId = null)
+    {
+        try
+        {
+            List<PlaylistModel> options = new();
+            if (!string.IsNullOrEmpty(videoId))
+            {
+                options = await _ytService.GetAddToPlaylistOptionsAsync(videoId);
+            }
+
+            if (options.Count > 0)
+            {
+                foreach (var opt in options)
+                {
+                    var existing = LibraryPlaylists.FirstOrDefault(p => p.Id == opt.Id);
+                    if (existing != null)
+                    {
+                        existing.CanEdit = true;
+                    }
+                    else
+                    {
+                        LibraryPlaylists.Add(opt);
+                    }
+                }
+            }
+            else if (LibraryPlaylists.Count == 0)
+            {
+                var libraryPlaylists = await _ytService.GetLibraryPlaylistsAsync();
+                foreach (var p in libraryPlaylists)
+                {
+                    if (!LibraryPlaylists.Any(x => x.Id == p.Id))
+                    {
+                        LibraryPlaylists.Add(p);
+                    }
+                }
+            }
+
+            UpdateEditablePlaylists();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chyba při obnově upravitelných playlistů: {ex.Message}");
         }
     }
 
@@ -1083,11 +1294,19 @@ public partial class MainViewModel : ObservableObject
                     SongCount = 0
                 };
 
-                MainThread.BeginInvokeOnMainThread(() =>
+                if (MainThread.IsMainThread)
                 {
                     LibraryPlaylists.Insert(0, newPlaylist);
                     UpdateEditablePlaylists();
-                });
+                }
+                else
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        LibraryPlaylists.Insert(0, newPlaylist);
+                        UpdateEditablePlaylists();
+                    });
+                }
 
                 StatusMessage = $"Playlist '{title}' byl úspěšně vytvořen na YouTube Music.";
                 return newPlaylist;
@@ -1303,6 +1522,13 @@ public partial class MainViewModel : ObservableObject
     {
         if (CurrentPlaylist == null || song == null || !CurrentPlaylist.CanEdit) return;
 
+        // Kontrola, zda už skladba v playlistu není
+        if (CurrentPlaylistSongs.Any(s => s.VideoId == song.VideoId))
+        {
+            StatusMessage = $"Skladba '{song.Title}' se v playlistu již nachází.";
+            return;
+        }
+
         StatusMessage = $"Přidávám '{song.Title}' do playlistu '{CurrentPlaylist.Title}'...";
         bool success = await _ytService.AddSongToPlaylistAsync(CurrentPlaylist.Id, song.VideoId);
         if (success)
@@ -1317,14 +1543,38 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    public async Task AddSongToPlaylistAsync(PlaylistModel playlist, SongModel song)
+    public async Task<(bool Success, bool IsDuplicate, string Message)> AddSongToPlaylistAsync(PlaylistModel playlist, SongModel song)
     {
-        if (!playlist.CanEdit)
+        if (playlist == null || song == null) return (false, false, "Neplatný požadavek.");
+
+        // Kontrola, zda už skladba v playlistu není
+        bool isDuplicate = false;
+        if (CurrentPlaylist?.Id == playlist.Id && CurrentPlaylistSongs.Count > 0)
         {
-            StatusMessage = "Do tohoto playlistu nemáte oprávnění přidávat skladby.";
-            return;
+            isDuplicate = CurrentPlaylistSongs.Any(s => s.VideoId == song.VideoId);
+        }
+        else
+        {
+            try
+            {
+                StatusMessage = $"Ověřuji skladby v playlistu '{playlist.Title}'...";
+                var existing = await _ytService.GetPlaylistSongsAsync(playlist.Id);
+                if (existing != null && existing.Any(s => s.VideoId == song.VideoId))
+                {
+                    isDuplicate = true;
+                }
+            }
+            catch { }
         }
 
+        if (isDuplicate)
+        {
+            string dupMsg = $"Skladba '{song.Title}' se v playlistu '{playlist.Title}' již nachází.";
+            StatusMessage = dupMsg;
+            return (false, true, dupMsg);
+        }
+
+        playlist.CanEdit = true;
         StatusMessage = $"Přidávám '{song.Title}' do playlistu '{playlist.Title}'...";
         bool success = await _ytService.AddSongToPlaylistAsync(playlist.Id, song.VideoId);
         if (success)
@@ -1334,11 +1584,15 @@ public partial class MainViewModel : ObservableObject
             {
                 CurrentPlaylistSongs.Add(song);
             }
-            StatusMessage = $"Skladba '{song.Title}' byla přidána do '{playlist.Title}'.";
+            string okMsg = $"Skladba '{song.Title}' byla přidána do '{playlist.Title}'.";
+            StatusMessage = okMsg;
+            return (true, false, okMsg);
         }
         else
         {
-            StatusMessage = "Chyba: Nepodařilo se přidat skladbu do playlistu na YouTube Music.";
+            string errMsg = "Chyba: Nepodařilo se přidat skladbu do playlistu na YouTube Music.";
+            StatusMessage = errMsg;
+            return (false, false, errMsg);
         }
     }
 
@@ -1458,6 +1712,39 @@ public partial class MainViewModel : ObservableObject
             CurrentQueueIndex = 0;
             await PlayQueueCurrentSongAsync();
         }
+        else if (IsAutoplayEnabled && CurrentSong != null)
+        {
+            // Autoplay: Nekonečné rádio 🎶
+            StatusMessage = "Nekonečné rádio 🎶: Načítám další skladby...";
+            try
+            {
+                var nextSongs = await _ytService.GetUpNextRadioAsync(CurrentSong.VideoId);
+                if (nextSongs != null && nextSongs.Count > 0)
+                {
+                    int added = 0;
+                    foreach (var s in nextSongs)
+                    {
+                        if (!PlaybackQueue.Any(q => q.VideoId == s.VideoId))
+                        {
+                            PlaybackQueue.Add(s);
+                            _originalQueue.Add(s);
+                            added++;
+                        }
+                    }
+                    if (added > 0 && CurrentQueueIndex + 1 < PlaybackQueue.Count)
+                    {
+                        CurrentQueueIndex++;
+                        await PlayQueueCurrentSongAsync();
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                VmLog($"Autoplay failed: {ex.Message}");
+            }
+            StatusMessage = "Konec fronty přehrávání.";
+        }
         else
         {
             StatusMessage = "Konec fronty přehrávání.";
@@ -1506,6 +1793,7 @@ public partial class MainViewModel : ObservableObject
         var song = PlaybackQueue[CurrentQueueIndex];
         CurrentSong = song;
         SelectedQueueSong = song;
+        IsCurrentSongLiked = song.IsLiked;
         IsBusy = true;
         StatusMessage = $"Příprava: {song.Title}...";
 
@@ -1785,7 +2073,8 @@ public partial class MainViewModel : ObservableObject
                     UserProfileName = "Můj účet";
                     StatusMessage = "Relace obnovena.";
                     
-                    _ = Task.Run(LoadLibraryAsync);
+                    await LoadLibraryAsync();
+                    return;
                 }
             }
         }
@@ -1793,6 +2082,9 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = $"Nepodařilo se načíst relaci: {ex.Message}";
         }
+
+        // Pokud není přihlášen, načteme alespoň domovskou obrazovku
+        _ = Task.Run(LoadHomeRecommendationsAsync);
     }
 
     public async Task SaveSessionAsync(List<Cookie> cookies)
@@ -1821,18 +2113,33 @@ public partial class MainViewModel : ObservableObject
         try
         {
             await _ytService.EnsureInitializedAsync();
+            var sections = await _ytService.GetHomeSectionsAsync();
             var homeSongs = await _ytService.GetHomeRecommendationsAsync();
             
             // Pokud Youtube vrátí prázdný seznam (např. u nepřihlášených účtů), uděláme fallback search
-            if (homeSongs == null || homeSongs.Count == 0)
+            if ((homeSongs == null || homeSongs.Count == 0) && (sections == null || sections.Count == 0))
             {
                 homeSongs = await _ytService.SearchSongsAsync("Top 100 hitů");
             }
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                HomeSections.Clear();
+                if (sections != null && sections.Count > 0)
+                {
+                    foreach (var s in sections) HomeSections.Add(s);
+                    HasHomeSections = true;
+                }
+                else
+                {
+                    HasHomeSections = false;
+                }
+
                 HomeRecommendations.Clear();
-                foreach (var h in homeSongs) HomeRecommendations.Add(h);
+                if (homeSongs != null)
+                {
+                    foreach (var h in homeSongs) HomeRecommendations.Add(h);
+                }
             });
         }
         catch (Exception ex)
@@ -1867,16 +2174,37 @@ public partial class MainViewModel : ObservableObject
             
             _ = Task.Run(LoadHomeRecommendationsAsync);
             
-            var songs = await _ytService.GetLibrarySongsAsync();
-            var playlists = await _ytService.GetLibraryPlaylistsAsync();
-            var albums = await _ytService.GetLibraryAlbumsAsync();
-            var artists = await _ytService.GetLibraryArtistsAsync();
+            IsLikedSongsLoading = true;
+            var songsTask = _ytService.GetLibrarySongsAsync();
+            var playlistsTask = _ytService.GetLibraryPlaylistsAsync();
+            var albumsTask = _ytService.GetLibraryAlbumsAsync();
+            var artistsTask = _ytService.GetLibraryArtistsAsync();
+            var likedTask = _ytService.GetLikedSongsAsync();
+
+            await Task.WhenAll(songsTask, playlistsTask, albumsTask, artistsTask, likedTask);
+
+            var songs = await songsTask;
+            var playlists = await playlistsTask;
+            var albums = await albumsTask;
+            var artists = await artistsTask;
+            var likedDetails = await likedTask;
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                LikedSongs.Clear();
+                if (likedDetails?.Songs != null)
+                {
+                    foreach (var ls in likedDetails.Songs) LikedSongs.Add(ls);
+                    LikedSongsCount = likedDetails.Playlist.SongCount > 0 ? likedDetails.Playlist.SongCount : LikedSongs.Count;
+                }
+                IsLikedSongsLoading = false;
 
                 LibrarySongs.Clear();
                 foreach (var s in songs) LibrarySongs.Add(s);
+                if (LibrarySongs.Count == 0 && LikedSongs.Count > 0)
+                {
+                    foreach (var ls in LikedSongs) LibrarySongs.Add(ls);
+                }
 
                 LibraryPlaylists.Clear();
                 foreach (var p in playlists) LibraryPlaylists.Add(p);
@@ -1891,7 +2219,7 @@ public partial class MainViewModel : ObservableObject
                 StatusMessage = TextStatusLibraryLoaded;
             });
 
-            _ = Task.Run(() => GenerateLibraryRecommendationsAsync(songs.ToList(), artists.ToList(), albums.ToList(), playlists.ToList()));
+            _ = Task.Run(() => GenerateLibraryRecommendationsAsync(LibrarySongs.ToList(), artists.ToList(), albums.ToList(), playlists.ToList()));
         }
         catch (Exception ex)
         {
@@ -2137,5 +2465,205 @@ public partial class MainViewModel : ObservableObject
         _draggedSong = null;
     }
 
+    // --- Nové YT Music Web funkce: Like/Dislike, Mute, Explore & Nálady 🎶 ---
 
+    [RelayCommand]
+    public async Task ToggleLikeCurrentSongAsync()
+    {
+        if (CurrentSong == null) return;
+        var song = CurrentSong;
+        song.IsLiked = !song.IsLiked;
+        IsCurrentSongLiked = song.IsLiked;
+
+        if (song.IsLiked)
+        {
+            StatusMessage = $"Přidáno do Oblíbených ❤️: {song.Title}";
+            await _ytService.LikeSongAsync(song.VideoId);
+        }
+        else
+        {
+            StatusMessage = $"Odebráno z Oblíbených: {song.Title}";
+            await _ytService.RemoveLikeAsync(song.VideoId);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DislikeCurrentSongAsync()
+    {
+        if (CurrentSong == null) return;
+        var song = CurrentSong;
+        StatusMessage = $"Skladba '{song.Title}' označena jako Nelíbí se 👎";
+        await _ytService.DislikeSongAsync(song.VideoId);
+        await PlayNextSongAsync();
+    }
+
+    private double _previousVolume = 0.5;
+
+    [RelayCommand]
+    public void ToggleMute()
+    {
+        if (Volume > 0.001)
+        {
+            _previousVolume = Volume;
+            Volume = 0;
+            StatusMessage = "Zvuk ztlumen (Mute).";
+        }
+        else
+        {
+            Volume = _previousVolume > 0.01 ? _previousVolume : 0.5;
+            StatusMessage = $"Hlasitost obnovena: {(int)(Volume * 100)}%";
+        }
+    }
+
+    [RelayCommand]
+    public async Task SetSearchFilterAsync(string filter)
+    {
+        SelectedSearchFilter = filter;
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            await PerformSearchAsync();
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadExploreDataAsync()
+    {
+        if (ExploreCharts.Count > 0 && MoodCategories.Count > 0) return;
+
+        IsExploreLoading = true;
+        StatusMessage = "Načítám Objevovat & Žebříčky 🎶...";
+
+        try
+        {
+            if (MoodCategories.Count == 0)
+            {
+                MoodCategories.Add(new() { Title = "Relax & Chill", Icon = "🧘", Description = "Klidné melodie, lo-fi a ambient pro odpočinek", Query = "Relax", GradientStart = "#20B2AA", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Energie", Icon = "⚡", Description = "Povzbuzující rytmy, dance a vysoká energie", Query = "Energie", GradientStart = "#FF8C00", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Cvičení & Workout", Icon = "🏋️", Description = "Motivace do posilovny a rychlé tempo", Query = "Cvičení", GradientStart = "#E63946", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Soustředění & Práce", Icon = "🧠", Description = "Lo-Fi a instrumentální hudba na studium", Query = "Soustředění", GradientStart = "#457B9D", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Párty & Klub", Icon = "🎉", Description = "Největší taneční hity na večírek", Query = "Párty", GradientStart = "#9D4EDD", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Rock & Metal", Icon = "🎸", Description = "Kytary, klasický rock i moderní metal", Query = "Rock", GradientStart = "#D62828", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Pop & Hity", Icon = "🎤", Description = "Aktuální globální a domácí popové žebříčky", Query = "Pop", GradientStart = "#FF006E", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Hip-Hop & Rap", Icon = "🎧", Description = "Trap, boom bap a moderní rapové beaty", Query = "Hip-Hop", GradientStart = "#FB5607", GradientEnd = "#1E202C" });
+                MoodCategories.Add(new() { Title = "Elektronika & EDM", Icon = "🎹", Description = "Synthwave, house, techno a electro", Query = "Elektronika", GradientStart = "#28C6D0", GradientEnd = "#1E202C" });
+            }
+
+            var charts = await _ytService.GetExploreChartsAsync();
+            ExploreCharts.Clear();
+            foreach (var s in charts)
+            {
+                ExploreCharts.Add(s);
+            }
+            StatusMessage = $"Objevovat: Načteno {charts.Count} skladeb v žebříčcích 🎶.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Chyba při načítání Explore: {ex.Message}";
+        }
+        finally
+        {
+            IsExploreLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task PlayAllExploreChartsAsync()
+    {
+        if (ExploreCharts.Count == 0) return;
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+        foreach (var song in ExploreCharts)
+        {
+            PlaybackQueue.Add(song);
+            _originalQueue.Add(song);
+        }
+        CurrentQueueIndex = 0;
+        await PlayQueueCurrentSongAsync();
+    }
+
+    [RelayCommand]
+    public async Task ShuffleExploreChartsAsync()
+    {
+        if (ExploreCharts.Count == 0) return;
+        PlaybackQueue.Clear();
+        _originalQueue.Clear();
+        foreach (var song in ExploreCharts)
+        {
+            PlaybackQueue.Add(song);
+            _originalQueue.Add(song);
+        }
+        CurrentQueueIndex = 0;
+        IsShuffle = true;
+        ApplyShuffle();
+        await PlayQueueCurrentSongAsync();
+    }
+
+    [RelayCommand]
+    public async Task PlayMoodAsync(MoodModel? mood)
+    {
+        if (mood == null) return;
+        IsBusy = true;
+        StatusMessage = $"Načítám náladu: {mood.Title} 🎶...";
+        try
+        {
+            var songs = await _ytService.GetMoodSongsAsync(mood.Query);
+            if (songs.Count > 0)
+            {
+                PlaybackQueue.Clear();
+                _originalQueue.Clear();
+                foreach (var s in songs)
+                {
+                    PlaybackQueue.Add(s);
+                    _originalQueue.Add(s);
+                }
+                CurrentQueueIndex = 0;
+                await PlayQueueCurrentSongAsync();
+            }
+            else
+            {
+                StatusMessage = $"Pro náladu {mood.Title} nebyly nalezeny žádné skladby.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Chyba při přehrávání nálady: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SelectMoodAsync(string mood)
+    {
+        SelectedMood = mood;
+        IsBusy = true;
+        StatusMessage = $"Načítám hudbu pro náladu: {mood} 🎶...";
+        try
+        {
+            if (mood == "Vše")
+            {
+                await LoadHomeRecommendationsAsync();
+            }
+            else
+            {
+                var songs = await _ytService.GetMoodSongsAsync(mood);
+                HomeRecommendations.Clear();
+                foreach (var s in songs)
+                {
+                    HomeRecommendations.Add(s);
+                }
+                StatusMessage = $"Nálada '{mood}': načteno {songs.Count} skladeb 🎶.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Chyba při načítání nálady: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 }

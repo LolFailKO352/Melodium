@@ -13,6 +13,8 @@ public static class MainThread
         _dispatcherQueue = queue;
     }
 
+    public static bool IsMainThread => _dispatcherQueue == null || _dispatcherQueue.HasThreadAccess;
+
     public static void BeginInvokeOnMainThread(Action action)
     {
         if (_dispatcherQueue != null && !_dispatcherQueue.HasThreadAccess)

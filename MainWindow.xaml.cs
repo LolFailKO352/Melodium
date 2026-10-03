@@ -30,7 +30,13 @@ public sealed partial class MainWindow : Window
         // Close to tray logic
         AppWindow.Closing += (s, e) =>
         {
-            if (System.Diagnostics.Debugger.IsAttached || App.IsExiting || !ViewModel.IsCloseToTrayEnabled)
+            if (App.IsExiting)
+            {
+                // Application is already exiting; allow window to close without cancelling
+                return;
+            }
+
+            if (!ViewModel.IsCloseToTrayEnabled || System.Diagnostics.Debugger.IsAttached)
             {
                 e.Cancel = true;
                 App.ExitApplication();
@@ -42,9 +48,6 @@ public sealed partial class MainWindow : Window
             }
         };
 
-        // Initialize session and recommendations
-        _ = ViewModel.LoadSavedSessionAsync();
-        _ = ViewModel.LoadHomeRecommendationsAsync();
     }
 
     public void DisposeTrayIcon()

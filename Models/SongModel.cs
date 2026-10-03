@@ -15,6 +15,9 @@ namespace Melodium.Models
 
         [ObservableProperty]
         public partial bool CanEdit { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsLiked { get; set; }
     }
 }
 
