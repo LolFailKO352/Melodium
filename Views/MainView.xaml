@@ -191,42 +191,6 @@
                                     </StackPanel>
                                 </ScrollViewer>
 
-                                <!-- Personalized Recommendations -->
-                                <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.HasPersonalizedRecommendations, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                                    <TextBlock Text="{x:Bind ViewModel.TextPersonalizedSongs, Mode=OneWay}" FontSize="22" FontWeight="Bold" />
-                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.LibraryBasedRecommendations, Mode=OneWay}">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout MinItemWidth="280" MinItemHeight="90" MinRowSpacing="12" MinColumnSpacing="12" Orientation="Horizontal" />
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
-                                            <DataTemplate x:DataType="models:SongModel">
-                                                <Button Style="{StaticResource MediaCardButtonStyle}" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
-                                                    <Button.ContextFlyout>
-                                                        <MenuFlyout>
-                                                            <MenuFlyoutItem Text="Přehrát" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
-                                                            <MenuFlyoutItem Text="Spustit mix" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
-                                                            <MenuFlyoutItem Text="Přehrát jako další" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
-                                                            <MenuFlyoutItem Text="Přidat do fronty" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
-                                                            <MenuFlyoutItem Text="Přidat do playlistu" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
-                                                            <MenuFlyoutSeparator />
-                                                            <MenuFlyoutItem Text="Přejít na autora" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
-                                                        </MenuFlyout>
-                                                    </Button.ContextFlyout>
-                                                    <Grid ColumnDefinitions="70, *">
-                                                        <Border Grid.Column="0" CornerRadius="6">
-                                                            <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="70" Height="70" />
-                                                        </Border>
-                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" Tapped="OnSongArtistTapped" Tag="{x:Bind}" ToolTipService.ToolTip="Přejít na autora" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Button>
-                                            </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
-                                </StackPanel>
-
                                 <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
 
                                 <!-- Dynamic Home Sections (Poslechnout znovu, Rychlý výběr, Doporučené playlisty, atd.) -->
