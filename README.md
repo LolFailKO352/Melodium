@@ -20,9 +20,10 @@ A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3**
 
 | Search Results | Personal Library |
 |----------------|--------------|
-| <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/ae5dd7d8-7df7-4179-b324-6c4bb7108543" /> | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/5295ebb1-20d5-4e3c-9e3f-65eefa50729f" /> |
+| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/42083021-bd90-4f05-aedb-1b2a1db11f52" /> | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/5295ebb1-20d5-4e3c-9e3f-65eefa50729f" /> |
 
 | Discover Page |
+|---------------|
 | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/3a0e50f3-8105-4fc1-a7cc-52788fb6c3f2" /> |
 
 
