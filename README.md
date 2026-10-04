@@ -16,11 +16,14 @@ A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3**
 
 | Home Screen | Player and Queue |
 |-------------|----------------|
-| <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/32c2d459-a91d-4f2c-947a-4b05a6a8b2e1" /> | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/3d3afd2e-5ccb-481c-aa39-4870511099a5" /> |
+| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/ab3c1e1e-8754-497c-b91d-ca02c484dcc9" /> | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/3d3afd2e-5ccb-481c-aa39-4870511099a5" /> |
 
 | Search Results | Personal Library |
 |----------------|--------------|
 | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/ae5dd7d8-7df7-4179-b324-6c4bb7108543" /> | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/d5f4b13c-38db-4ee1-b523-7acc1b88d76c" /> |
+| Discover Page |
+| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/3a0e50f3-8105-4fc1-a7cc-52788fb6c3f2" /> |
+
 
 ## 🔐 How Login Works
 
