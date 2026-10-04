@@ -145,25 +145,62 @@ public sealed partial class MainView : UserControl
         }
     }
 
+    private DispatcherTimer? _searchDebounceTimer;
+
     private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
-        if (!string.IsNullOrWhiteSpace(args.QueryText) && ViewModel != null)
-        {
-            ViewModel.SearchQuery = args.QueryText;
-            ViewModel.PerformSearchCommand.Execute(null);
-
-            // Odznačit položky v navigaci (vyhledávání má vlastní zobrazení)
-            NavView.SelectedItem = null;
-        }
+        _searchDebounceTimer?.Stop();
+        string query = !string.IsNullOrWhiteSpace(args.QueryText) ? args.QueryText : sender.Text;
+        ExecuteSearch(query);
     }
 
     private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason == AutoSuggestionBoxTextChangeReason.ProgrammaticChange) return;
-        if (string.IsNullOrWhiteSpace(sender.Text) && ViewModel?.CurrentView == "Search")
+
+        if (string.IsNullOrWhiteSpace(sender.Text))
         {
-            OnBackToHomeClick(sender, new RoutedEventArgs());
+            _searchDebounceTimer?.Stop();
+            if (ViewModel?.CurrentView == "Search")
+            {
+                OnBackToHomeClick(sender, new RoutedEventArgs());
+            }
+            return;
         }
+
+        // Live vyhledávání při psaní (debounce 450 ms)
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+        {
+            _searchDebounceTimer?.Stop();
+            _searchDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(450) };
+            _searchDebounceTimer.Tick += (s, e) =>
+            {
+                _searchDebounceTimer?.Stop();
+                ExecuteSearch(sender.Text);
+            };
+            _searchDebounceTimer.Start();
+        }
+    }
+
+    private void SearchBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Enter)
+        {
+            _searchDebounceTimer?.Stop();
+            ExecuteSearch(SearchBox.Text);
+            e.Handled = true;
+        }
+    }
+
+    private void ExecuteSearch(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query) || ViewModel == null) return;
+        _searchDebounceTimer?.Stop();
+        ViewModel.SearchQuery = query.Trim();
+        ViewModel.PerformSearchCommand.Execute(null);
+
+        // Odznačit položky v navigaci (vyhledávání má vlastní zobrazení)
+        NavView.SelectedItem = null;
     }
 
     private void OnBackToHomeClick(object sender, RoutedEventArgs e)

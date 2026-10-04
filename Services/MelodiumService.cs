@@ -89,7 +89,7 @@ namespace Melodium.Services
             };
         }
 
-        public async Task<System.Text.Json.Nodes.JsonNode?> PostInnertubeAsync(string endpoint, object body)
+        public async Task<System.Text.Json.Nodes.JsonNode?> PostInnertubeAsync(string endpoint, object body, bool anonymous = false)
         {
             await EnsureInitializedAsync();
             try
@@ -106,28 +106,31 @@ namespace Melodium.Services
                 request.Headers.TryAddWithoutValidation("X-YouTube-Client-Version", "1.20250101.01.00");
                 request.Headers.TryAddWithoutValidation("X-Goog-AuthUser", "0");
 
-                if (_currentCookies != null && _currentCookies.Any())
+                if (!anonymous)
                 {
-                    var cookieHeader = string.Join("; ", _currentCookies.Select(c => $"{c.Name}={c.Value}"));
-                    request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
-                }
+                    if (_currentCookies != null && _currentCookies.Any())
+                    {
+                        var cookieHeader = string.Join("; ", _currentCookies.Select(c => $"{c.Name}={c.Value}"));
+                        request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                    }
 
-                string? sapisidToUse = _sapisid;
-                if (string.IsNullOrEmpty(sapisidToUse) && _currentCookies != null)
-                {
-                    sapisidToUse = _currentCookies.FirstOrDefault(c => c.Name == "SAPISID")?.Value
-                                ?? _currentCookies.FirstOrDefault(c => c.Name == "__Secure-3PAPISID")?.Value
-                                ?? _currentCookies.FirstOrDefault(c => c.Name == "__Secure-1PAPISID")?.Value;
-                }
+                    string? sapisidToUse = _sapisid;
+                    if (string.IsNullOrEmpty(sapisidToUse) && _currentCookies != null)
+                    {
+                        sapisidToUse = _currentCookies.FirstOrDefault(c => c.Name == "SAPISID")?.Value
+                                    ?? _currentCookies.FirstOrDefault(c => c.Name == "__Secure-3PAPISID")?.Value
+                                    ?? _currentCookies.FirstOrDefault(c => c.Name == "__Secure-1PAPISID")?.Value;
+                    }
 
-                if (!string.IsNullOrEmpty(sapisidToUse))
-                {
-                    long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                    string input = $"{timestamp} {sapisidToUse} https://music.youtube.com";
-                    using var sha1 = System.Security.Cryptography.SHA1.Create();
-                    byte[] hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-                    string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                    request.Headers.TryAddWithoutValidation("Authorization", $"SAPISIDHASH {timestamp}_{hash}");
+                    if (!string.IsNullOrEmpty(sapisidToUse))
+                    {
+                        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                        string input = $"{timestamp} {sapisidToUse} https://music.youtube.com";
+                        using var sha1 = System.Security.Cryptography.SHA1.Create();
+                        byte[] hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+                        string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                        request.Headers.TryAddWithoutValidation("Authorization", $"SAPISIDHASH {timestamp}_{hash}");
+                    }
                 }
 
                 string json = System.Text.Json.JsonSerializer.Serialize(body);
@@ -280,31 +283,184 @@ namespace Melodium.Services
         {
             var results = new List<SongModel>();
 
+            if (string.IsNullOrWhiteSpace(query))
+                return results;
+
+            // 1. Zkusit primárně přímé Innertube vyhledávání s filtrem skladeb
             try
             {
-                var searchResults = _client.SearchAsync(query, SearchCategory.Songs);
-                var bufferedSearchResults = await searchResults.FetchItemsAsync(0, 20);
-
-                foreach (var song in bufferedSearchResults.Cast<SongSearchResult>())
+                var body = new
                 {
-                    string artistName = song.Artists != null && song.Artists.Any()
-                        ? string.Join(", ", song.Artists.Select(a => a.Name))
-                        : "Neznámý interpret";
-                    string? artistId = song.Artists?.FirstOrDefault(a => !string.IsNullOrEmpty(a.Id))?.Id;
+                    context = CreateInnertubeContext(),
+                    query = query,
+                    @params = "EgWKAQIIAWoKEAkQBRAKEAMQBBAK" // Songs filter
+                };
 
-                    results.Add(new SongModel
+                var root = await PostInnertubeAsync("search", body, anonymous: false);
+                if (root == null)
+                {
+                    root = await PostInnertubeAsync("search", body, anonymous: true);
+                }
+
+                if (root != null)
+                {
+                    var sections = root?["contents"]?["tabbedSearchResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["contents"]?.AsArray()
+                                ?? root?["contents"]?["sectionListRenderer"]?["contents"]?.AsArray()
+                                ?? root?["contents"]?["twoColumnSearchResultsRenderer"]?["primaryContents"]?["sectionListRenderer"]?["contents"]?.AsArray();
+                    if (sections != null)
                     {
-                        VideoId = song.Id,
-                        Title = song.Name,
-                        Artist = artistName,
-                        ArtistId = artistId,
-                        ThumbnailUrl = song.Thumbnails?.LastOrDefault()?.Url ?? song.Thumbnails?.FirstOrDefault()?.Url
-                    });
+                        foreach (var sec in sections)
+                        {
+                            var shelf = sec?["musicShelfRenderer"];
+                            if (shelf == null) continue;
+
+                            var items = shelf?["contents"]?.AsArray();
+                            if (items == null) continue;
+
+                            foreach (var itm in items)
+                            {
+                                var r = itm?["musicResponsiveListItemRenderer"];
+                                if (r == null) continue;
+
+                                string? videoId = r?["playlistItemData"]?["videoId"]?.ToString() 
+                                               ?? r?["navigationEndpoint"]?["watchEndpoint"]?["videoId"]?.ToString()
+                                               ?? r?["overlay"]?["musicItemThumbnailOverlayRenderer"]?["content"]?["musicPlayButtonRenderer"]?["playNavigationEndpoint"]?["watchEndpoint"]?["videoId"]?.ToString();
+
+                                if (string.IsNullOrEmpty(videoId)) continue;
+
+                                var thumbs = r?["thumbnail"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
+                                string? thumbUrl = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
+
+                                var flex = r?["flexColumns"]?.AsArray();
+                                string title = "Neznámá skladba";
+                                string artist = "Neznámý interpret";
+                                string? artistId = null;
+
+                                if (flex != null && flex.Count > 0)
+                                {
+                                    var titleRuns = flex[0]?["musicResponsiveListItemFlexColumnRenderer"]?["text"]?["runs"]?.AsArray();
+                                    if (titleRuns != null && titleRuns.Count > 0)
+                                    {
+                                        title = string.Join("", titleRuns.Select(x => x?["text"]?.ToString()));
+                                    }
+
+                                    if (flex.Count > 1)
+                                    {
+                                        var col1Runs = flex[1]?["musicResponsiveListItemFlexColumnRenderer"]?["text"]?["runs"]?.AsArray();
+                                        if (col1Runs != null && col1Runs.Count > 0)
+                                        {
+                                            var artistList = new List<string>();
+                                            foreach (var run in col1Runs)
+                                            {
+                                                var text = run?["text"]?.ToString();
+                                                if (string.IsNullOrWhiteSpace(text) || text == "•" || text == " • " || text == ", " || text.Trim() == "a") continue;
+
+                                                var nav = run?["navigationEndpoint"]?["browseEndpoint"];
+                                                var pageType = nav?["browseEndpointContextSupportedConfigs"]?["browseEndpointContextMusicConfig"]?["pageType"]?.ToString();
+                                                var browseId = nav?["browseId"]?.ToString();
+
+                                                if (pageType == "MUSIC_PAGE_TYPE_ARTIST" || (browseId != null && browseId.StartsWith("UC")))
+                                                {
+                                                    artistList.Add(text);
+                                                    if (artistId == null) artistId = browseId;
+                                                }
+                                            }
+
+                                            if (artistList.Count > 0)
+                                            {
+                                                artist = string.Join(", ", artistList);
+                                            }
+                                            else
+                                            {
+                                                var runsBeforeBullet = new List<string>();
+                                                foreach (var run in col1Runs)
+                                                {
+                                                    var text = run?["text"]?.ToString();
+                                                    if (text != null && text.Contains("•")) break;
+                                                    if (!string.IsNullOrWhiteSpace(text) && text != ", " && text.Trim() != "a")
+                                                    {
+                                                        runsBeforeBullet.Add(text);
+                                                    }
+                                                }
+                                                if (runsBeforeBullet.Count > 0)
+                                                {
+                                                    artist = string.Join(", ", runsBeforeBullet);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                results.Add(new SongModel
+                                {
+                                    VideoId = videoId,
+                                    Title = title,
+                                    Artist = artist,
+                                    ArtistId = artistId,
+                                    ThumbnailUrl = thumbUrl
+                                });
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Chyba při hledání: {ex.Message}");
+                Console.WriteLine($"Chyba při přímém vyhledávání skladeb: {ex.Message}");
+            }
+
+            // 2. Fallback: Pokud Innertube nevrátil žádné výsledky, zkusit YoutubeExplode vyhledávání
+            if (results.Count == 0)
+            {
+                try
+                {
+                    await foreach (var v in _ytExplodeClient.Search.GetVideosAsync(query))
+                    {
+                        results.Add(new SongModel
+                        {
+                            VideoId = v.Id.Value,
+                            Title = v.Title,
+                            Artist = v.Author.ChannelTitle,
+                            ThumbnailUrl = v.Thumbnails.LastOrDefault()?.Url ?? v.Thumbnails.FirstOrDefault()?.Url
+                        });
+                        if (results.Count >= 20) break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"YoutubeExplode search fallback error: {ex.Message}");
+                }
+            }
+
+            // 3. Fallback: Pokus o vyhledání přes YouTubeMusicClient
+            if (results.Count == 0)
+            {
+                try
+                {
+                    var searchResults = _client.SearchAsync(query, SearchCategory.Songs);
+                    var bufferedSearchResults = await searchResults.FetchItemsAsync(0, 20);
+
+                    foreach (var song in bufferedSearchResults.OfType<SongSearchResult>())
+                    {
+                        string artistName = song.Artists != null && song.Artists.Any()
+                            ? string.Join(", ", song.Artists.Select(a => a.Name))
+                            : "Neznámý interpret";
+                        string? artistId = song.Artists?.FirstOrDefault(a => !string.IsNullOrEmpty(a.Id))?.Id;
+
+                        results.Add(new SongModel
+                        {
+                            VideoId = song.Id,
+                            Title = song.Name,
+                            Artist = artistName,
+                            ArtistId = artistId,
+                            ThumbnailUrl = song.Thumbnails?.LastOrDefault()?.Url ?? song.Thumbnails?.FirstOrDefault()?.Url
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Chyba při hledání přes YouTubeMusicClient: {ex.Message}");
+                }
             }
 
             return results;
@@ -317,7 +473,7 @@ namespace Melodium.Services
             {
                 var searchResults = _client.SearchAsync(query, SearchCategory.Albums);
                 var buffered = await searchResults.FetchItemsAsync(0, 20);
-                foreach (var album in buffered.Cast<AlbumSearchResult>())
+                foreach (var album in buffered.OfType<AlbumSearchResult>())
                 {
                     string artistName = album.Artists != null && album.Artists.Any()
                         ? string.Join(", ", album.Artists.Select(a => a.Name))
@@ -347,7 +503,7 @@ namespace Melodium.Services
             {
                 var searchResults = _client.SearchAsync(query, SearchCategory.Artists);
                 var buffered = await searchResults.FetchItemsAsync(0, 20);
-                foreach (var artist in buffered.Cast<ArtistSearchResult>())
+                foreach (var artist in buffered.OfType<ArtistSearchResult>())
                 {
                     results.Add(new ArtistModel
                     {
@@ -372,7 +528,7 @@ namespace Melodium.Services
             {
                 var searchResults = _client.SearchAsync(query, SearchCategory.CommunityPlaylists);
                 var buffered = await searchResults.FetchItemsAsync(0, 20);
-                foreach (var pl in buffered.Cast<CommunityPlaylistSearchResult>())
+                foreach (var pl in buffered.OfType<CommunityPlaylistSearchResult>())
                 {
                     results.Add(new PlaylistModel
                     {
@@ -2063,18 +2219,14 @@ namespace Melodium.Services
                 {
                     try
                     {
-                        var songSearch = _client.SearchAsync(details.Name, SearchCategory.Songs);
-                        var songs = await songSearch.FetchItemsAsync(0, 15);
-                        foreach (var s in songs.Cast<SongSearchResult>())
+                        var songs = await SearchSongsAsync(details.Name);
+                        foreach (var s in songs.Take(15))
                         {
-                            details.TopSongs.Add(new SongModel
+                            if (string.IsNullOrEmpty(s.ArtistId))
                             {
-                                VideoId = s.Id,
-                                Title = s.Name,
-                                Artist = s.Artists != null && s.Artists.Any() ? string.Join(", ", s.Artists.Select(a => a.Name)) : details.Name,
-                                ArtistId = s.Artists?.FirstOrDefault(a => !string.IsNullOrEmpty(a.Id))?.Id ?? details.Id,
-                                ThumbnailUrl = s.Thumbnails?.LastOrDefault()?.Url ?? s.Thumbnails?.FirstOrDefault()?.Url
-                            });
+                                s.ArtistId = details.Id;
+                            }
+                            details.TopSongs.Add(s);
                         }
                     }
                     catch (Exception ex)

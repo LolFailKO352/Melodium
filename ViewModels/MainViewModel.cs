@@ -105,7 +105,7 @@ public partial class MainViewModel : ObservableObject
     // --- Aktualizace aplikace ---
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AppVersionDisplay))]
-    public partial string CurrentAppVersion { get; set; } = "1.5.0";
+    public partial string CurrentAppVersion { get; set; } = "1.5.1";
 
     public string AppVersionDisplay => $"Verze {CurrentAppVersion} (Windows App SDK)";
 
@@ -559,7 +559,27 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSearchResultsEmpty))]
     public partial bool HasSearched { get; set; }
 
-    public bool IsSearchResultsEmpty => HasSearched && SearchResults.Count == 0 && !IsBusy;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSearchResultsEmpty))]
+    public partial bool HasSongResults { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSearchResultsEmpty))]
+    public partial bool HasAlbumResults { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSearchResultsEmpty))]
+    public partial bool HasArtistResults { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSearchResultsEmpty))]
+    public partial bool HasPlaylistResults { get; set; }
+
+    public bool IsSearchResultsEmpty => HasSearched && !IsBusy &&
+        !HasSongResults &&
+        !HasAlbumResults &&
+        !HasArtistResults &&
+        !HasPlaylistResults;
 
     [ObservableProperty]
     public partial ArtistDetailsModel? CurrentArtist { get; set; }
@@ -1130,41 +1150,89 @@ public partial class MainViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(SearchQuery)) return;
 
+        string query = SearchQuery.Trim();
         CurrentView = "Search";
         IsBusy = true;
-        SearchResults.Clear();
-        SearchResultsAlbums.Clear();
-        SearchResultsArtists.Clear();
-        SearchResultsPlaylists.Clear();
-        StatusMessage = $"Vyhledávám: {SearchQuery}...";
+        StatusMessage = $"Vyhledávám: {query}...";
 
-        await _ytService.EnsureInitializedAsync();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            SearchResults.Clear();
+            SearchResultsAlbums.Clear();
+            SearchResultsArtists.Clear();
+            SearchResultsPlaylists.Clear();
+            HasSongResults = false;
+            HasAlbumResults = false;
+            HasArtistResults = false;
+            HasPlaylistResults = false;
+        });
 
-        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Skladby")
+        try
         {
-            var songs = await _ytService.SearchSongsAsync(SearchQuery);
-            foreach (var song in songs) SearchResults.Add(song);
-        }
-        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Alba")
-        {
-            var albums = await _ytService.SearchAlbumsAsync(SearchQuery);
-            foreach (var alb in albums) SearchResultsAlbums.Add(alb);
-        }
-        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Interpreti")
-        {
-            var artists = await _ytService.SearchArtistsAsync(SearchQuery);
-            foreach (var art in artists) SearchResultsArtists.Add(art);
-        }
-        if (SelectedSearchFilter == "Vše" || SelectedSearchFilter == "Playlisty")
-        {
-            var playlists = await _ytService.SearchPlaylistsAsync(SearchQuery);
-            foreach (var pl in playlists) SearchResultsPlaylists.Add(pl);
-        }
+            await _ytService.EnsureInitializedAsync();
 
-        HasSearched = true;
-        OnPropertyChanged(nameof(IsSearchResultsEmpty));
-        StatusMessage = $"Hledání dokončeno 🎶.";
-        IsBusy = false;
+            bool isAll = string.Equals(SelectedSearchFilter, "Vše", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(SelectedSearchFilter, "Vse", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(SelectedSearchFilter, "All", StringComparison.OrdinalIgnoreCase);
+
+            var songTask = (isAll || string.Equals(SelectedSearchFilter, "Skladby", StringComparison.OrdinalIgnoreCase) || string.Equals(SelectedSearchFilter, "Songs", StringComparison.OrdinalIgnoreCase))
+                ? _ytService.SearchSongsAsync(query)
+                : Task.FromResult(new List<SongModel>());
+
+            var albumTask = (isAll || string.Equals(SelectedSearchFilter, "Alba", StringComparison.OrdinalIgnoreCase) || string.Equals(SelectedSearchFilter, "Albums", StringComparison.OrdinalIgnoreCase))
+                ? _ytService.SearchAlbumsAsync(query)
+                : Task.FromResult(new List<AlbumModel>());
+
+            var artistTask = (isAll || string.Equals(SelectedSearchFilter, "Interpreti", StringComparison.OrdinalIgnoreCase) || string.Equals(SelectedSearchFilter, "Artists", StringComparison.OrdinalIgnoreCase))
+                ? _ytService.SearchArtistsAsync(query)
+                : Task.FromResult(new List<ArtistModel>());
+
+            var playlistTask = (isAll || string.Equals(SelectedSearchFilter, "Playlisty", StringComparison.OrdinalIgnoreCase) || string.Equals(SelectedSearchFilter, "Playlists", StringComparison.OrdinalIgnoreCase))
+                ? _ytService.SearchPlaylistsAsync(query)
+                : Task.FromResult(new List<PlaylistModel>());
+
+            await Task.WhenAll(songTask, albumTask, artistTask, playlistTask);
+
+            var songs = await songTask;
+            var albums = await albumTask;
+            var artists = await artistTask;
+            var playlists = await playlistTask;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                SearchResults.Clear();
+                foreach (var song in songs) SearchResults.Add(song);
+                HasSongResults = SearchResults.Count > 0;
+
+                SearchResultsAlbums.Clear();
+                foreach (var alb in albums) SearchResultsAlbums.Add(alb);
+                HasAlbumResults = SearchResultsAlbums.Count > 0;
+
+                SearchResultsArtists.Clear();
+                foreach (var art in artists) SearchResultsArtists.Add(art);
+                HasArtistResults = SearchResultsArtists.Count > 0;
+
+                SearchResultsPlaylists.Clear();
+                foreach (var pl in playlists) SearchResultsPlaylists.Add(pl);
+                HasPlaylistResults = SearchResultsPlaylists.Count > 0;
+
+                HasSearched = true;
+                OnPropertyChanged(nameof(IsSearchResultsEmpty));
+                StatusMessage = $"Hledání dokončeno 🎶.";
+                IsBusy = false;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PerformSearchAsync Error]: {ex}");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                HasSearched = true;
+                OnPropertyChanged(nameof(IsSearchResultsEmpty));
+                StatusMessage = $"Chyba při vyhledávání: {ex.Message}";
+                IsBusy = false;
+            });
+        }
     }
 
     [RelayCommand]

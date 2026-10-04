@@ -146,6 +146,7 @@
                             QueryIcon="Find"
                             QuerySubmitted="SearchBox_QuerySubmitted"
                             TextChanged="SearchBox_TextChanged"
+                            KeyDown="SearchBox_KeyDown"
                             HorizontalAlignment="Center"
                             Width="540"
                             CornerRadius="20" />
@@ -498,7 +499,7 @@
                                     </StackPanel>
 
                                     <!-- Songs Results -->
-                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResults.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasSongResults, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="Skladby" FontSize="18" FontWeight="Bold" />
                                         <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResults, Mode=OneWay}">
                                             <ItemsRepeater.Layout>
@@ -534,7 +535,7 @@
                                     </StackPanel>
 
                                     <!-- Albums Results -->
-                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResultsAlbums.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasAlbumResults, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="Alba" FontSize="18" FontWeight="Bold" />
                                         <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResultsAlbums, Mode=OneWay}">
                                             <ItemsRepeater.Layout>
@@ -559,7 +560,7 @@
                                     </StackPanel>
 
                                     <!-- Artists Results -->
-                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResultsArtists.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasArtistResults, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="Interpreti" FontSize="18" FontWeight="Bold" />
                                         <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResultsArtists, Mode=OneWay}">
                                             <ItemsRepeater.Layout>
@@ -584,7 +585,7 @@
                                     </StackPanel>
 
                                     <!-- Playlists Results -->
-                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SearchResultsPlaylists.Count, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasPlaylistResults, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="Playlisty" FontSize="18" FontWeight="Bold" />
                                         <ItemsRepeater ItemsSource="{x:Bind ViewModel.SearchResultsPlaylists, Mode=OneWay}">
                                             <ItemsRepeater.Layout>
