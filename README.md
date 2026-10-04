@@ -12,7 +12,7 @@ A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3**
 - **🔍 Search and Explore**: Instant search for tracks, artists, albums, or community playlists.
 - **📚 Personal Library**: Full access to your liked songs, playlists, and artists.
 
-## 📸 Screenshots
+## 📸 Screenshots (please do not question my music taste, I know my library is wierd but it's not all my fault, I am trying to play music that most people can listen to if I am with someone)
 
 | Home Screen | Player and Queue |
 |-------------|----------------|
