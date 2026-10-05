@@ -12,18 +12,19 @@ A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3**
 - **🔍 Search and Explore**: Instant search for tracks, artists, albums, or community playlists.
 - **📚 Personal Library**: Full access to your liked songs, playlists, and artists.
 
-## 📸 Screenshots
+## 📸 Screenshots (please do not question my music taste, I know my library is wierd but it's not all my fault, I am trying to play music that most people can listen to if I am with someone)
 
 | Home Screen | Player and Queue |
 |-------------|----------------|
-| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/ab3c1e1e-8754-497c-b91d-ca02c484dcc9" /> | <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/3d3afd2e-5ccb-481c-aa39-4870511099a5" /> |
+| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/ab3c1e1e-8754-497c-b91d-ca02c484dcc9" /> | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/d9558d9d-d79d-4e9f-ad79-c343392e1e21" /> |
+
+| Player with karaoke lyrics | Discover Page |
+|----------------------------|---------------|
+| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/e64875d5-f143-4dbe-b80d-50302b9922a9" /> | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/3a0e50f3-8105-4fc1-a7cc-52788fb6c3f2" /> |
 
 | Search Results | Personal Library |
 |----------------|--------------|
-| <img width="1266" height="793" alt="image" src="https://github.com/user-attachments/assets/ae5dd7d8-7df7-4179-b324-6c4bb7108543" /> | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/5295ebb1-20d5-4e3c-9e3f-65eefa50729f" /> |
-
-| Discover Page |
-| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/3a0e50f3-8105-4fc1-a7cc-52788fb6c3f2" /> |
+| <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/42083021-bd90-4f05-aedb-1b2a1db11f52" /> | <img width="2560" height="1392" alt="obrazek" src="https://github.com/user-attachments/assets/5295ebb1-20d5-4e3c-9e3f-65eefa50729f" /> |
 
 
 ## 🔐 How Login Works
