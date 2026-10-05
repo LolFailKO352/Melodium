@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -29,7 +30,9 @@ namespace Melodium.Services
         private IEnumerable<Cookie>? _currentCookies;
         private System.Net.Http.HttpClient _httpClient;
         private YoutubeClient _ytExplodeClient;
+        private readonly ConcurrentDictionary<string, (string Url, DateTime ExpiresAt)> _streamUrlCache = new();
         private string? _sapisid;
+
         private string? _userChannelName;
         private string? _userChannelHandle;
 
@@ -251,9 +254,13 @@ namespace Melodium.Services
             _ytExplodeClient = new YoutubeClient();
             
             // Set up cookies for raw HttpClient if available
-            var handler = new System.Net.Http.HttpClientHandler
+            var handler = new System.Net.Http.SocketsHttpHandler
             {
-                UseCookies = false
+                UseCookies = false,
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                MaxConnectionsPerServer = 20,
+                EnableMultipleHttp2Connections = true
             };
 
             _sapisid = null;
@@ -665,6 +672,14 @@ namespace Melodium.Services
 
         public async Task<string?> GetAudioStreamUrlAsync(string videoId, string? fallbackQuery = null)
         {
+            if (string.IsNullOrWhiteSpace(videoId)) return null;
+
+            if (_streamUrlCache.TryGetValue(videoId, out var cached) && cached.ExpiresAt > DateTime.UtcNow)
+            {
+                LogAudioService($"Stream URL načtena z mezipaměti pro {videoId}");
+                return cached.Url;
+            }
+
             try
             {
                 var streamManifest = await _ytExplodeClient.Videos.Streams.GetManifestAsync(videoId);
@@ -678,6 +693,7 @@ namespace Melodium.Services
                 if (audioStreamInfo != null)
                 {
                     LogAudioService($"Stream nalezen pro {videoId}: {audioStreamInfo.Container.Name} ({audioStreamInfo.Bitrate})");
+                    _streamUrlCache[videoId] = (audioStreamInfo.Url, DateTime.UtcNow.AddHours(4));
                     return audioStreamInfo.Url;
                 }
             }
@@ -710,6 +726,7 @@ namespace Melodium.Services
                             if (info != null)
                             {
                                 LogAudioService($"Záložní stream nalezen: {match.Id} ({match.Title})");
+                                _streamUrlCache[videoId] = (info.Url, DateTime.UtcNow.AddHours(4));
                                 return info.Url;
                             }
                         }
@@ -1425,14 +1442,12 @@ namespace Melodium.Services
                         ParseHomeSections(sectionNodes, sections);
                     }
 
-                    // Načíst 1-2 stránky pokračování pro další sekce (Novinky, Quick picks, atd.)
+                    // Načíst 1 stránku pokračování pro další sekce, pokud je to potřeba (šetří čas a síť)
                     var continuations = root?["contents"]?["singleColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["continuations"]?.AsArray();
                     string? ctoken = continuations?[0]?["nextContinuationData"]?["continuation"]?.ToString();
 
-                    int continuationPages = 0;
-                    while (!string.IsNullOrEmpty(ctoken) && continuationPages < 2)
+                    if (!string.IsNullOrEmpty(ctoken) && sections.Count < 6)
                     {
-                        continuationPages++;
                         var contBody = new
                         {
                             context = CreateInnertubeContext()
@@ -1445,13 +1460,9 @@ namespace Melodium.Services
                             {
                                 ParseHomeSections(contItems, sections);
                             }
-                            ctoken = contRoot?["continuationContents"]?["sectionListContinuation"]?["continuations"]?[0]?["nextContinuationData"]?["continuation"]?.ToString();
-                        }
-                        else
-                        {
-                            break;
                         }
                     }
+
                 }
             }
             catch (Exception ex)

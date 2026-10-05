@@ -22,6 +22,7 @@ public partial class MainViewModel : ObservableObject
     private UpdateCheckResult? _lastUpdateResult;
     private System.Threading.CancellationTokenSource? _updateDownloadCts;
     private System.Threading.CancellationTokenSource? _downloadCts;
+    private System.Threading.CancellationTokenSource? _prefetchCts;
     private readonly List<SongModel> _originalQueue = new();
 
     [ObservableProperty]
@@ -70,18 +71,19 @@ public partial class MainViewModel : ObservableObject
     
     public static event EventHandler<CultureInfo>? LanguageChanged;
 
-    [ObservableProperty] public partial string TextHome { get; set; } = "Domů";
-    [ObservableProperty] public partial string TextExplore { get; set; } = "Objevovat 🎶";
-    [ObservableProperty] public partial string TextSearch { get; set; } = "Hledat";
-    [ObservableProperty] public partial string TextLibrary { get; set; } = "Knihovna";
-    [ObservableProperty] public partial string TextQueue { get; set; } = "Fronta";
-    [ObservableProperty] public partial string TextAccount { get; set; } = "Účet";
-    [ObservableProperty] public partial string TextLogout { get; set; } = "Odhlásit";
-    [ObservableProperty] public partial string TextSettings { get; set; } = "Nastavení";
-    [ObservableProperty] public partial string TextLanguageSelection { get; set; } = "Výběr jazyka";
+    [ObservableProperty] public partial string TextHome { get; set; } = "Home";
+    [ObservableProperty] public partial string TextExplore { get; set; } = "Explore 🎶";
+    [ObservableProperty] public partial string TextSearch { get; set; } = "Search";
+    [ObservableProperty] public partial string TextLibrary { get; set; } = "Library";
+    [ObservableProperty] public partial string TextQueue { get; set; } = "Queue";
+    [ObservableProperty] public partial string TextAccount { get; set; } = "Account";
+    [ObservableProperty] public partial string TextLogout { get; set; } = "Log out";
+    [ObservableProperty] public partial string TextLogin { get; set; } = "Log in";
+    [ObservableProperty] public partial string TextSettings { get; set; } = "Settings";
+    [ObservableProperty] public partial string TextLanguageSelection { get; set; } = "Language Selection";
     
     [ObservableProperty] public partial bool IsDiscordRpcEnabled { get; set; }
-    [ObservableProperty] public partial string TextEnableDiscordRpc { get; set; } = "Zobrazovat aktivitu na Discordu";
+    [ObservableProperty] public partial string TextEnableDiscordRpc { get; set; } = "Display activity on Discord";
 
     partial void OnIsDiscordRpcEnabledChanged(bool value)
     {
@@ -90,24 +92,24 @@ public partial class MainViewModel : ObservableObject
     }
 
     [ObservableProperty] public partial bool IsCloseToTrayEnabled { get; set; } = false;
-    [ObservableProperty] public partial string TextCloseToTray { get; set; } = "Zavřít do oznamovací oblasti";
-    [ObservableProperty] public partial string TextCloseToTrayDesc { get; set; } = "Při kliknutí na křížek (zavření okna) zůstane aplikace spuštěná v oznamovací oblasti na hlavním panelu.";
+    [ObservableProperty] public partial string TextCloseToTray { get; set; } = "Minimize to system tray";
+    [ObservableProperty] public partial string TextCloseToTrayDesc { get; set; } = "When closing the window, keep Melodium running in the notification area.";
 
     partial void OnIsCloseToTrayEnabledChanged(bool value)
     {
         Preferences.Default.Set("IsCloseToTrayEnabled", value);
     }
 
-    [ObservableProperty] public partial string TextExitApp { get; set; } = "Ukončení aplikace";
-    [ObservableProperty] public partial string TextExitAppDesc { get; set; } = "Zcela ukončí aplikaci Melodium a uvolní všechny procesy a prostředky na pozadí.";
-    [ObservableProperty] public partial string TextExitButton { get; set; } = "Ukončit aplikaci";
+    [ObservableProperty] public partial string TextExitApp { get; set; } = "Exit Application";
+    [ObservableProperty] public partial string TextExitAppDesc { get; set; } = "Completely exits Melodium and frees all background processes.";
+    [ObservableProperty] public partial string TextExitButton { get; set; } = "Exit application";
 
     // --- Aktualizace aplikace ---
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AppVersionDisplay))]
-    public partial string CurrentAppVersion { get; set; } = "1.5.1";
+    public partial string CurrentAppVersion { get; set; } = "1.6";
 
-    public string AppVersionDisplay => $"Verze {CurrentAppVersion} (Windows App SDK)";
+    public string AppVersionDisplay => $"Version {CurrentAppVersion} (Windows App SDK)";
 
     [ObservableProperty] public partial string LatestAppVersion { get; set; } = string.Empty;
     [ObservableProperty]
@@ -135,151 +137,155 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial string UpdateNotificationTitle { get; set; } = string.Empty;
     [ObservableProperty] public partial string UpdateNotificationMessage { get; set; } = string.Empty;
 
-    [ObservableProperty] public partial string TextUpdateSettings { get; set; } = "Aktualizace aplikace";
-    [ObservableProperty] public partial string TextCheckForUpdates { get; set; } = "Zkontrolovat aktualizace";
-    [ObservableProperty] public partial string TextCheckForUpdatesDesc { get; set; } = "Zkontroluje dostupnost nejnovější verze aplikace Melodium na GitHubu.";
-    [ObservableProperty] public partial string TextCheckingForUpdates { get; set; } = "Ověřuji dostupnost nové verze...";
-    [ObservableProperty] public partial string TextAppUpToDate { get; set; } = "Melodium je aktuální. Máte nejnovější verzi.";
-    [ObservableProperty] public partial string TextUpdateAvailable { get; set; } = "Je k dispozici nová verze!";
-    [ObservableProperty] public partial string TextDownloadAndInstall { get; set; } = "Stáhnout a aktualizovat";
-    [ObservableProperty] public partial string TextDownloadAndInstallDesc { get; set; } = "Aplikace stáhne instalační balíček a spustí instalátor pro provedení aktualizace.";
-    [ObservableProperty] public partial string TextDownloadingUpdate { get; set; } = "Stahování aktualizace...";
-    [ObservableProperty] public partial string TextCurrentVersionLabel { get; set; } = "Nainstalovaná verze:";
-    [ObservableProperty] public partial string TextLatestVersionLabel { get; set; } = "Nejnovější verze na GitHubu:";
-    [ObservableProperty] public partial string TextChangelogLabel { get; set; } = "Přehled změn:";
-    [ObservableProperty] public partial string TextOpenOnGitHub { get; set; } = "Zobrazit na GitHubu";
+    [ObservableProperty] public partial string TextUpdateSettings { get; set; } = "Application Updates";
+    [ObservableProperty] public partial string TextCheckForUpdates { get; set; } = "Check for updates";
+    [ObservableProperty] public partial string TextCheckForUpdatesDesc { get; set; } = "Checks for the latest Melodium release on GitHub.";
+    [ObservableProperty] public partial string TextCheckingForUpdates { get; set; } = "Checking for updates...";
+    [ObservableProperty] public partial string TextAppUpToDate { get; set; } = "Melodium is up to date.";
+    [ObservableProperty] public partial string TextUpdateAvailable { get; set; } = "A new update is available!";
+    [ObservableProperty] public partial string TextDownloadAndInstall { get; set; } = "Download and update";
+    [ObservableProperty] public partial string TextDownloadAndInstallDesc { get; set; } = "Downloads and launches the update installer.";
+    [ObservableProperty] public partial string TextDownloadingUpdate { get; set; } = "Downloading update...";
+    [ObservableProperty] public partial string TextCurrentVersionLabel { get; set; } = "Installed version:";
+    [ObservableProperty] public partial string TextLatestVersionLabel { get; set; } = "Latest version on GitHub:";
+    [ObservableProperty] public partial string TextChangelogLabel { get; set; } = "Changelog:";
+    [ObservableProperty] public partial string TextOpenOnGitHub { get; set; } = "View on GitHub";
     
-    [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Hledat skladby, interprety, alba...";
-    [ObservableProperty] public partial string TextLanguageDescription { get; set; } = "Vyberte preferovaný jazyk aplikace. Seznam obsahuje všechny dostupné světové jazyky.";
-    [ObservableProperty] public partial string TextHeroSubtitle { get; set; } = "Poslouchej hudbu bez omezení a bez reklam";
-    [ObservableProperty] public partial string TextStartListening { get; set; } = "Začít poslouchat";
-    [ObservableProperty] public partial string TextRecommendedMusic { get; set; } = "Doporučená hudba";
-    [ObservableProperty] public partial string TextLoadingRecommendations { get; set; } = "Načítám doporučení...";
-    [ObservableProperty] public partial string TextPersonalizedSongs { get; set; } = "Doporučené skladby přímo pro vás";
-    [ObservableProperty] public partial string TextLockedLibrary { get; set; } = "Uzamčená Knihovna";
-    [ObservableProperty] public partial string TextLockedLibraryDesc { get; set; } = "Chcete-li zobrazit své skladby, playlisty a alba z Melodium, musíte se přihlásit.";
-    [ObservableProperty] public partial string TextGoToLogin { get; set; } = "Přejít k přihlášení";
-    [ObservableProperty] public partial string TextMusic { get; set; } = "Hudba";
-    [ObservableProperty] public partial string TextLikedSongs { get; set; } = "Oblíbené";
-    [ObservableProperty] public partial string TextSongs { get; set; } = "Skladby";
-    [ObservableProperty] public partial string TextPlaylists { get; set; } = "Playlisty";
-    [ObservableProperty] public partial string TextAlbums { get; set; } = "Alba";
-    [ObservableProperty] public partial string TextArtists { get; set; } = "Interpreti";
-    [ObservableProperty] public partial string TextAddFolder { get; set; } = "Přidat složku";
-    [ObservableProperty] public partial string TextShuffleAndPlay { get; set; } = "Zamíchat a přehrát";
-    [ObservableProperty] public partial string TextSortBy { get; set; } = "Řadit dle: Názvu";
-    [ObservableProperty] public partial string TextUnknownGenre { get; set; } = "Neznámý žánr";
-    [ObservableProperty] public partial string TextPlay { get; set; } = "Přehrát";
-    [ObservableProperty] public partial string TextLoginInstructions { get; set; } = "Instrukce pro přihlášení";
-    [ObservableProperty] public partial string TextLoginInstruction1 { get; set; } = "1. Přihlaste se ke svému Google / YouTube účtu přímo v okně níže.";
-    [ObservableProperty] public partial string TextLoginInstruction2 { get; set; } = "2. Po úspěšném přihlášení a načtení hlavní stránky Melodium vás aplikace automaticky připojí a stáhne vaši osobní knihovnu.";
-    [ObservableProperty] public partial string TextPlaybackQueue { get; set; } = "Fronta přehrávání";
-    [ObservableProperty] public partial string TextClearQueue { get; set; } = "Vyčistit frontu";
-    [ObservableProperty] public partial string TextEmptyQueue { get; set; } = "Fronta je prázdná";
-    [ObservableProperty] public partial string TextEmptyQueueDesc { get; set; } = "Najděte nějaké skladby a spusťte přehrávání.";
-    [ObservableProperty] public partial string TextRemoveFromQueue { get; set; } = "Odebrat z fronty";
-    [ObservableProperty] public partial string TextSongsCountLabel { get; set; } = "Skladeb:";
-    [ObservableProperty] public partial string TextReleaseYearLabel { get; set; } = "Rok:";
-    [ObservableProperty] public partial string TextSubscribersLabel { get; set; } = "Odběratelé:";
-    [ObservableProperty] public partial string TextSongsInQueueLabel { get; set; } = "Skladeb ve frontě:";
-    [ObservableProperty] public partial string TextStatusReady { get; set; } = "Připraveno. Zvol sekci a hraj.";
-    [ObservableProperty] public partial string TextStatusLibraryEmpty { get; set; } = "Knihovna skladeb je prázdná, míchám z doporučené hudby...";
-    [ObservableProperty] public partial string TextStatusShuffleFailed { get; set; } = "Nelze zahájit míchání - žádné dostupné skladby.";
-    [ObservableProperty] public partial string TextStatusLibraryLoaded { get; set; } = "Vaše knihovna a doporučení byly úspěšně načteny.";
+    [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Search songs, artists, albums...";
+    [ObservableProperty] public partial string TextLanguageDescription { get; set; } = "Select your preferred language. All world languages are supported.";
+    [ObservableProperty] public partial string TextHeroSubtitle { get; set; } = "Listen to music without limits and without ads";
+    [ObservableProperty] public partial string TextStartListening { get; set; } = "Start listening";
+    [ObservableProperty] public partial string TextRecommendedMusic { get; set; } = "Recommended music >";
+    [ObservableProperty] public partial string TextLoadingRecommendations { get; set; } = "Loading recommendations...";
+    [ObservableProperty] public partial string TextPersonalizedSongs { get; set; } = "Recommended tracks just for you";
+    [ObservableProperty] public partial string TextLockedLibrary { get; set; } = "Locked Library";
+    [ObservableProperty] public partial string TextLockedLibraryDesc { get; set; } = "To view your songs, playlists, and albums from Melodium, please log in.";
+    [ObservableProperty] public partial string TextGoToLogin { get; set; } = "Go to login";
+    [ObservableProperty] public partial string TextMusic { get; set; } = "Music";
+    [ObservableProperty] public partial string TextLikedSongs { get; set; } = "Liked Songs";
+    [ObservableProperty] public partial string TextSongs { get; set; } = "Songs";
+    [ObservableProperty] public partial string TextPlaylists { get; set; } = "Playlists";
+    [ObservableProperty] public partial string TextAlbums { get; set; } = "Albums";
+    [ObservableProperty] public partial string TextArtists { get; set; } = "Artists";
+    [ObservableProperty] public partial string TextAddFolder { get; set; } = "Add folder";
+    [ObservableProperty] public partial string TextShuffleAndPlay { get; set; } = "Shuffle & Play";
+    [ObservableProperty] public partial string TextSortBy { get; set; } = "Sort by: Title";
+    [ObservableProperty] public partial string TextUnknownGenre { get; set; } = "Unknown genre";
+    [ObservableProperty] public partial string TextPlay { get; set; } = "Play";
+    [ObservableProperty] public partial string TextPlayAll { get; set; } = "Play all";
+    [ObservableProperty] public partial string TextLoginInstructions { get; set; } = "Login Instructions";
+    [ObservableProperty] public partial string TextLoginInstruction1 { get; set; } = "1. Sign in to your Google / YouTube account in the window below.";
+    [ObservableProperty] public partial string TextLoginInstruction2 { get; set; } = "2. Once signed in, Melodium will automatically connect and load your personal library.";
+    [ObservableProperty] public partial string TextPlaybackQueue { get; set; } = "Playback Queue";
+    [ObservableProperty] public partial string TextClearQueue { get; set; } = "Clear queue";
+    [ObservableProperty] public partial string TextEmptyQueue { get; set; } = "Queue is empty";
+    [ObservableProperty] public partial string TextEmptyQueueDesc { get; set; } = "Find some songs and start listening.";
+    [ObservableProperty] public partial string TextRemoveFromQueue { get; set; } = "Remove from queue";
+    [ObservableProperty] public partial string TextSongsCountLabel { get; set; } = "Songs:";
+    [ObservableProperty] public partial string TextReleaseYearLabel { get; set; } = "Year:";
+    [ObservableProperty] public partial string TextSubscribersLabel { get; set; } = "Subscribers:";
+    [ObservableProperty] public partial string TextSongsInQueueLabel { get; set; } = "Songs in queue:";
+    [ObservableProperty] public partial string TextStatusReady { get; set; } = "Ready. Select music and enjoy.";
+    [ObservableProperty] public partial string TextStatusLibraryEmpty { get; set; } = "Library is empty, playing recommendations...";
+    [ObservableProperty] public partial string TextStatusShuffleFailed { get; set; } = "Cannot shuffle - no songs available.";
+    [ObservableProperty] public partial string TextStatusLibraryLoaded { get; set; } = "Your library and recommendations were loaded.";
 
-    [ObservableProperty] public partial string TextStartMix { get; set; } = "Spustit mix";
-    [ObservableProperty] public partial string TextPlayNext { get; set; } = "Přehrát jako další";
-    [ObservableProperty] public partial string TextAddToQueue { get; set; } = "Přidat do fronty";
-    [ObservableProperty] public partial string TextSaveToPlaylist { get; set; } = "Uložit do playlistu";
-    [ObservableProperty] public partial string TextGoToAlbum { get; set; } = "Přejít do alba";
-    [ObservableProperty] public partial string TextGoToArtist { get; set; } = "Přejít na interpreta";
-    [ObservableProperty] public partial string TextShare { get; set; } = "Sdílet";
+    [ObservableProperty] public partial string TextStartMix { get; set; } = "Start radio";
+    [ObservableProperty] public partial string TextPlayNext { get; set; } = "Play next";
+    [ObservableProperty] public partial string TextAddToQueue { get; set; } = "Add to queue";
+    [ObservableProperty] public partial string TextSaveToPlaylist { get; set; } = "Add to playlist";
+    [ObservableProperty] public partial string TextGoToAlbum { get; set; } = "Go to album";
+    [ObservableProperty] public partial string TextGoToArtist { get; set; } = "Go to artist";
+    [ObservableProperty] public partial string TextShare { get; set; } = "Share";
+    [ObservableProperty] public partial string TextShuffle { get; set; } = "Shuffle";
 
-    private readonly Dictionary<string, string> _baseTexts = new()
-    {
-        { nameof(TextHome), "Domů" },
-        { nameof(TextSearch), "Hledat" },
-        { nameof(TextLibrary), "Knihovna" },
-        { nameof(TextLikedSongs), "Oblíbené" },
-        { nameof(TextQueue), "Fronta" },
-        { nameof(TextAccount), "Účet" },
-        { nameof(TextLogout), "Odhlásit" },
-        { nameof(TextSettings), "Nastavení" },
-        { nameof(TextEnableDiscordRpc), "Zobrazovat aktivitu na Discordu" },
-        { nameof(TextCloseToTray), "Zavřít do oznamovací oblasti" },
-        { nameof(TextCloseToTrayDesc), "Při kliknutí na křížek (zavření okna) zůstane aplikace spuštěná v oznamovací oblasti na hlavním panelu." },
-        { nameof(TextExitApp), "Ukončení aplikace" },
-        { nameof(TextExitAppDesc), "Zcela ukončí aplikaci Melodium a uvolní všechny procesy a prostředky na pozadí." },
-        { nameof(TextExitButton), "Ukončit aplikaci" },
-        { nameof(TextUpdateSettings), "Aktualizace aplikace" },
-        { nameof(TextCheckForUpdates), "Zkontrolovat aktualizace" },
-        { nameof(TextCheckForUpdatesDesc), "Zkontroluje dostupnost nejnovější verze aplikace Melodium na GitHubu." },
-        { nameof(TextCheckingForUpdates), "Ověřuji dostupnost nové verze..." },
-        { nameof(TextAppUpToDate), "Melodium je aktuální. Máte nejnovější verzi." },
-        { nameof(TextUpdateAvailable), "Je k dispozici nová verze!" },
-        { nameof(TextDownloadAndInstall), "Stáhnout a aktualizovat" },
-        { nameof(TextDownloadAndInstallDesc), "Aplikace stáhne instalační balíček a spustí instalátor pro provedení aktualizace." },
-        { nameof(TextDownloadingUpdate), "Stahování aktualizace..." },
-        { nameof(TextCurrentVersionLabel), "Nainstalovaná verze:" },
-        { nameof(TextLatestVersionLabel), "Nejnovější verze na GitHubu:" },
-        { nameof(TextChangelogLabel), "Přehled změn:" },
-        { nameof(TextOpenOnGitHub), "Zobrazit na GitHubu" },
-        { nameof(TextLanguageSelection), "Výběr jazyka" },
-        { nameof(TextSearchPlaceholder), "Hledat skladby, interprety, alba..." },
-        { nameof(TextLanguageDescription), "Vyberte preferovaný jazyk aplikace. Seznam obsahuje všechny dostupné světové jazyky." },
-        { nameof(TextHeroSubtitle), "Poslouchej hudbu bez omezení a bez reklam" },
-        { nameof(TextStartListening), "Začít poslouchat" },
-        { nameof(TextRecommendedMusic), "Doporučená hudba >" },
-        { nameof(TextLoadingRecommendations), "Načítám doporučení..." },
-        { nameof(TextPersonalizedSongs), "Doporučené skladby přímo pro vás" },
-        { nameof(TextLockedLibrary), "Uzamčená Knihovna" },
-        { nameof(TextLockedLibraryDesc), "Chcete-li zobrazit své skladby, playlisty a alba z Melodium, musíte se přihlásit." },
-        { nameof(TextGoToLogin), "Přejít k přihlášení" },
-        { nameof(TextMusic), "Hudba" },
-        { nameof(TextSongs), "Skladby" },
-        { nameof(TextAlbums), "Alba" },
-        { nameof(TextArtists), "Interpreti" },
-        { nameof(TextAddFolder), "Přidat složku" },
-        { nameof(TextShuffleAndPlay), "Zamíchat a přehrát" },
-        { nameof(TextSortBy), "Řadit dle: Názvu" },
-        { nameof(TextUnknownGenre), "Neznámý žánr" },
-        { nameof(TextPlay), "Přehrát" },
-        { nameof(TextLoginInstructions), "Instrukce pro přihlášení" },
-        { nameof(TextLoginInstruction1), "1. Přihlaste se ke svému Google / YouTube účtu přímo v okně níže." },
-        { nameof(TextLoginInstruction2), "2. Po úspěšném přihlášení a načtení hlavní stránky Melodium vás aplikace automaticky připojí a stáhne vaši osobní knihovnu." },
-        { nameof(TextPlaybackQueue), "Fronta přehrávání" },
-        { nameof(TextClearQueue), "Vyčistit frontu" },
-        { nameof(TextEmptyQueue), "Fronta je prázdná" },
-        { nameof(TextEmptyQueueDesc), "Najděte nějaké skladby a spusťte přehrávání." },
-        { nameof(TextSongsCountLabel), "Skladeb:" },
-        { nameof(TextReleaseYearLabel), "Rok:" },
-        { nameof(TextSubscribersLabel), "Odběratelé:" },
-        { nameof(TextSongsInQueueLabel), "Skladeb ve frontě:" },
-        { nameof(TextStatusReady), "Připraveno. Zvol sekci a hraj." },
-        { nameof(TextStatusLibraryEmpty), "Knihovna skladeb je prázdná, míchám z doporučené hudby..." },
-        { nameof(TextStatusShuffleFailed), "Nelze zahájit míchání - žádné dostupné skladby." },
-        { nameof(TextStatusLibraryLoaded), "Vaše knihovna a doporučení byly úspěšně načteny." },
-        { nameof(TextStartMix), "Spustit mix" },
-        { nameof(TextPlayNext), "Přehrát jako další" },
-        { nameof(TextAddToQueue), "Přidat do fronty" },
-        { nameof(TextSaveToPlaylist), "Uložit do playlistu" },
-        { nameof(TextGoToAlbum), "Přejít do alba" },
-        { nameof(TextGoToArtist), "Přejít na interpreta" },
-        { nameof(TextShare), "Sdílet" }
-    };
+    [ObservableProperty] public partial string TextDiscoverNewMusic { get; set; } = "Discover new music";
+    [ObservableProperty] public partial string TextDiscoverSubtitle { get; set; } = "Latest hits, global charts, and playlists for every mood.";
+    [ObservableProperty] public partial string TextPlayCharts { get; set; } = "Play charts 🎶";
+    [ObservableProperty] public partial string TextShuffleCharts { get; set; } = "Shuffle charts 🔀";
+    [ObservableProperty] public partial string TextMoodsAndGenres { get; set; } = "Moods & Genres";
+    [ObservableProperty] public partial string TextChartsAndTrends { get; set; } = "Charts & Trends 🎶";
+    [ObservableProperty] public partial string TextRefresh { get; set; } = "Refresh";
+    [ObservableProperty] public partial string TextSearchResults { get; set; } = "Search results";
+    [ObservableProperty] public partial string TextBackToHome { get; set; } = "Back to home";
+
+    [ObservableProperty] public partial string TextFilterAll { get; set; } = "All";
+    [ObservableProperty] public partial string TextFilterRelax { get; set; } = "Relax";
+    [ObservableProperty] public partial string TextFilterEnergy { get; set; } = "Energy";
+    [ObservableProperty] public partial string TextFilterWorkout { get; set; } = "Workout";
+    [ObservableProperty] public partial string TextFilterFocus { get; set; } = "Focus";
+    [ObservableProperty] public partial string TextAddSongToPlaylist { get; set; } = "Add song to playlist";
+    [ObservableProperty] public partial string TextAddSong { get; set; } = "Add song";
+    [ObservableProperty] public partial string TextNoResults { get; set; } = "No results found";
+    [ObservableProperty] public partial string TextNoResultsDesc { get; set; } = "Try searching for a different artist, song title, or album.";
+    [ObservableProperty] public partial string TextOpenFullPage { get; set; } = "Open full page";
+    [ObservableProperty] public partial string TextOpenPlaylist { get; set; } = "Open playlist";
+    [ObservableProperty] public partial string TextEditable { get; set; } = "• Editable";
+    [ObservableProperty] public partial string TextPopularSongs { get; set; } = "Popular songs";
+    [ObservableProperty] public partial string TextShowAll { get; set; } = "Show all";
+    [ObservableProperty] public partial string TextSinglesAndEps { get; set; } = "Singles & EPs";
+    [ObservableProperty] public partial string TextBack { get; set; } = "Back";
+    [ObservableProperty] public partial string TextEditablePlaylist { get; set; } = "Editable playlist";
+    [ObservableProperty] public partial string TextReadOnlyPlaylist { get; set; } = "Shared playlist • Read-only";
+    [ObservableProperty] public partial string TextSearchAndAddSong { get; set; } = "Search and add song";
+    [ObservableProperty] public partial string TextSearchSongInYtMusic { get; set; } = "Search songs on YouTube Music...";
+    [ObservableProperty] public partial string TextSongsInPlaylist { get; set; } = "Songs in playlist";
+    [ObservableProperty] public partial string TextMoveUp { get; set; } = "Move up";
+    [ObservableProperty] public partial string TextMoveDown { get; set; } = "Move down";
+    [ObservableProperty] public partial string TextRemoveFromPlaylist { get; set; } = "Remove from playlist";
+    [ObservableProperty] public partial string TextNoSongPlaying { get; set; } = "No song playing";
+    [ObservableProperty] public partial string TextPreviousSong { get; set; } = "Previous track";
+    [ObservableProperty] public partial string TextNextSong { get; set; } = "Next track";
+    [ObservableProperty] public partial string TextPlayPause { get; set; } = "Play / Pause";
+    [ObservableProperty] public partial string TextRepeatMode { get; set; } = "Repeat mode";
+    [ObservableProperty] public partial string TextMute { get; set; } = "Mute / Unmute";
+    [ObservableProperty] public partial string TextFullScreen { get; set; } = "Full screen";
+    [ObservableProperty] public partial string TextCloseFullScreen { get; set; } = "Close full screen";
+    [ObservableProperty] public partial string TextLyrics { get; set; } = "Lyrics";
+    [ObservableProperty] public partial string TextLikeSong { get; set; } = "Like";
+    [ObservableProperty] public partial string TextDislikeSong { get; set; } = "Dislike";
+    [ObservableProperty] public partial string TextAutoplayTooltip { get; set; } = "Infinite Radio (Autoplay) 🎶 - Automatically plays similar songs when queue ends";
+    [ObservableProperty] public partial string TextReloadLyrics { get; set; } = "Reload lyrics";
+    [ObservableProperty] public partial string TextNoLyricsFound { get; set; } = "No lyrics found for this song.";
+    [ObservableProperty] public partial string TextTryAgainOrSelectOther { get; set; } = "Try again or select another song.";
+    [ObservableProperty] public partial string TextTryAgain { get; set; } = "Try again";
+    [ObservableProperty] public partial string TextLoadingLyrics { get; set; } = "Loading lyrics...";
+    [ObservableProperty] public partial string TextShowHideWindow { get; set; } = "Show / Hide window";
 
     private async Task UpdateLocalizedStringsAsync(CultureInfo culture)
     {
         string targetLang = culture.TwoLetterISOLanguageName;
-        
-        foreach (var kvp in _baseTexts)
+        var dict = await _translationService.GetDictionaryAsync(targetLang);
+
+        // Aktualizovat centrální Loc instanci pro DataTemplates
+        Loc.Instance.ApplyDictionary(dict);
+
+        // Aktualizovat properties ve ViewModelu na MainThread
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            string translated = await _translationService.TranslateAsync(kvp.Value, targetLang);
-            var prop = this.GetType().GetProperty(kvp.Key);
-            if (prop != null && prop.CanWrite)
+            var type = this.GetType();
+            foreach (var kvp in dict)
             {
-                prop.SetValue(this, translated);
+                var prop = type.GetProperty(kvp.Key);
+                if (prop != null && prop.CanWrite && prop.PropertyType == typeof(string))
+                {
+                    prop.SetValue(this, kvp.Value);
+                }
             }
+
+            RefreshMoodFiltersForLanguage();
+        });
+    }
+
+    private void RefreshMoodFiltersForLanguage()
+    {
+        if (MoodFilters.Count >= 5)
+        {
+            MoodFilters[0].Title = TextFilterAll;
+            MoodFilters[1].Title = TextFilterRelax;
+            MoodFilters[2].Title = TextFilterEnergy;
+            MoodFilters[3].Title = TextFilterWorkout;
+            MoodFilters[4].Title = TextFilterFocus;
         }
     }
     // --- Konec lokalizace ---
@@ -867,8 +873,11 @@ public partial class MainViewModel : ObservableObject
             }
         }
 
-        var savedLang = Preferences.Default.Get("AppLanguage", "cs");
-        SelectedLanguage = Languages.FirstOrDefault(c => c.Name == savedLang) ?? Languages.FirstOrDefault(c => c.TwoLetterISOLanguageName == "cs");
+        var savedLang = Preferences.Default.Get("AppLanguage", "en");
+        SelectedLanguage = Languages.FirstOrDefault(c => c.TwoLetterISOLanguageName.Equals(savedLang, StringComparison.OrdinalIgnoreCase))
+                        ?? Languages.FirstOrDefault(c => c.Name.Equals(savedLang, StringComparison.OrdinalIgnoreCase))
+                        ?? Languages.FirstOrDefault(c => c.TwoLetterISOLanguageName == "en")
+                        ?? Languages.FirstOrDefault();
 
         InitializeMoodFilters();
 
@@ -882,12 +891,12 @@ public partial class MainViewModel : ObservableObject
     private void InitializeMoodFilters()
     {
         MoodFilters.Clear();
-        MoodFilters.Add(new() { Title = "Vše", Icon = "🎶", IsSelected = true });
-        MoodFilters.Add(new() { Title = "Relax", Icon = "🧘", IsSelected = false });
-        MoodFilters.Add(new() { Title = "Energie", Icon = "⚡", IsSelected = false });
-        MoodFilters.Add(new() { Title = "Cvičení", Icon = "🏋️", IsSelected = false });
-        MoodFilters.Add(new() { Title = "Soustředění", Icon = "🧠", IsSelected = false });
-        MoodFilters.Add(new() { Title = "Párty", Icon = "🎉", IsSelected = false });
+        MoodFilters.Add(new() { Title = TextFilterAll, Icon = "🎶", IsSelected = true });
+        MoodFilters.Add(new() { Title = TextFilterRelax, Icon = "🧘", IsSelected = false });
+        MoodFilters.Add(new() { Title = TextFilterEnergy, Icon = "⚡", IsSelected = false });
+        MoodFilters.Add(new() { Title = TextFilterWorkout, Icon = "🏋️", IsSelected = false });
+        MoodFilters.Add(new() { Title = TextFilterFocus, Icon = "🧠", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Party", Icon = "🎉", IsSelected = false });
         MoodFilters.Add(new() { Title = "Rock", Icon = "🎸", IsSelected = false });
         MoodFilters.Add(new() { Title = "Pop", Icon = "🎤", IsSelected = false });
         MoodFilters.Add(new() { Title = "Hip-Hop", Icon = "🎧", IsSelected = false });
@@ -1863,6 +1872,66 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private void EnsureInfiniteQueue(string videoId)
+    {
+        if (PlaybackQueue.Count - CurrentQueueIndex <= 3)
+        {
+            _ = Task.Run(async () =>
+            {
+                var upNext = await _ytService.GetUpNextRadioAsync(videoId);
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    foreach (var nextSong in upNext)
+                    {
+                        if (!_originalQueue.Any(s => s.VideoId == nextSong.VideoId))
+                        {
+                            PlaybackQueue.Add(nextSong);
+                            _originalQueue.Add(nextSong);
+                        }
+                    }
+                });
+            });
+        }
+    }
+
+    private void TriggerPrefetchNextSong()
+    {
+        _prefetchCts?.Cancel();
+        _prefetchCts = new System.Threading.CancellationTokenSource();
+        var ct = _prefetchCts.Token;
+
+        int nextIndex = CurrentQueueIndex + 1;
+        if (nextIndex < 0 || nextIndex >= PlaybackQueue.Count) return;
+
+        var nextSong = PlaybackQueue[nextIndex];
+        if (string.IsNullOrWhiteSpace(nextSong.VideoId)) return;
+
+        if (_audioService.TryGetCachedAudio(nextSong.VideoId, out _))
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1500, ct);
+                if (ct.IsCancellationRequested) return;
+
+                VmLog($"[Prefetch] Získávám URL pro {nextSong.Title} ({nextSong.VideoId})");
+                var nextUrl = await _ytService.GetAudioStreamUrlAsync(nextSong.VideoId, $"{nextSong.Title} {nextSong.Artist}");
+                if (string.IsNullOrEmpty(nextUrl) || ct.IsCancellationRequested) return;
+
+                VmLog($"[Prefetch] Stahuji a ukládám do mezipaměti: {nextSong.Title}");
+                await _audioService.PrefetchSongAsync(nextSong.VideoId, nextUrl, ct);
+                VmLog($"[Prefetch] Skladba {nextSong.Title} je připravena v mezipaměti.");
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                VmLog($"[Prefetch] Chyba při přednačítání: {ex.Message}");
+            }
+        }, ct);
+    }
+
     private async Task PlayQueueCurrentSongAsync()
     {
         if (CurrentQueueIndex < 0 || CurrentQueueIndex >= PlaybackQueue.Count) return;
@@ -1870,7 +1939,7 @@ public partial class MainViewModel : ObservableObject
         // Stop current playback
         _audioService.Stop();
 
-        // Cancel previous download
+        // Cancel previous download & prefetch
         _downloadCts?.Cancel();
         _downloadCts = new System.Threading.CancellationTokenSource();
         var token = _downloadCts.Token;
@@ -1899,41 +1968,37 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            StatusMessage = $"[1/4] Získávám stream URL pro: {song.VideoId}...";
+            // 1. FAST PATH: Okamžité přehrání z lokální diskové mezipaměti (0ms čekání na síť)
+            if (_audioService.TryGetCachedAudio(song.VideoId, out var cachedPath))
+            {
+                VmLog($"[FAST PATH] Přehrávám přímo z diskové cache: {cachedPath}");
+                StatusMessage = $"▶ {song.Title}";
+
+                EnsureInfiniteQueue(song.VideoId);
+
+                await _audioService.PlayFileAsync(cachedPath, msg =>
+                {
+                    MainThread.BeginInvokeOnMainThread(() => StatusMessage = $"{song.Title} — {msg}");
+                });
+
+                TriggerPrefetchNextSong();
+                return;
+            }
+
+            // 2. NETWORK PATH: Získat stream URL a stáhnout/demuxovat do trvalé mezipaměti
+            StatusMessage = $"[1/3] Získávám audio stream: {song.Title}...";
             VmLog($"Getting stream URL for videoId={song.VideoId}");
 
             await _ytService.EnsureInitializedAsync();
             var streamUrl = await _ytService.GetAudioStreamUrlAsync(song.VideoId, $"{song.Title} {song.Artist}");
             token.ThrowIfCancellationRequested();
 
-            // Nekonečná fronta (Auto-play / Radio)
-            // Pokud se blížíme ke konci fronty (zbývají 3 a méně skladeb), načteme další doporučené k aktuální
-            if (PlaybackQueue.Count - CurrentQueueIndex <= 3)
-            {
-                _ = Task.Run(async () =>
-                {
-                    var upNext = await _ytService.GetUpNextRadioAsync(song.VideoId);
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        foreach (var nextSong in upNext)
-                        {
-                            // Přidat pouze skladby, které ještě ve frontě nebyly, abychom zamezili duplicitám
-                            if (!_originalQueue.Any(s => s.VideoId == nextSong.VideoId))
-                            {
-                                PlaybackQueue.Add(nextSong);
-                                _originalQueue.Add(nextSong);
-                            }
-                        }
-                    });
-                });
-            }
+            EnsureInfiniteQueue(song.VideoId);
 
-            VmLog($"Stream URL result: {(streamUrl == null ? "NULL" : $"length={streamUrl.Length}, first100={streamUrl[..Math.Min(100, streamUrl.Length)]}")}");
-            VmLog($"Stream URL has pot={streamUrl?.Contains("&pot=") == true}, has sig={streamUrl?.Contains("&sig=") == true}");
-            VmLog($"FULL URL: {streamUrl}");
+            VmLog($"Stream URL result: {(streamUrl == null ? "NULL" : $"length={streamUrl.Length}")}");
             if (!string.IsNullOrEmpty(streamUrl))
             {
-                StatusMessage = $"[2/4] Stream URL získáno. Stahuji: {song.Title}...";
+                StatusMessage = $"[2/3] Načítám: {song.Title}...";
 
                 await _audioService.PlayFromUrlAsync(streamUrl, token, msg =>
                 {
@@ -1941,20 +2006,21 @@ public partial class MainViewModel : ObservableObject
                     {
                         StatusMessage = $"{song.Title} — {msg}";
                     });
-                });
+                }, videoId: song.VideoId);
 
-                VmLog("PlayFromUrlAsync returned (přehrávání je event-driven).");
+                VmLog("PlayFromUrlAsync returned (přehrávání spuštěno).");
 
-                // Stav přehrávání teď řídí události MediaElementu (OnAudioPlaybackStateChanged /
-                // OnAudioPlaybackError), tady jen nastavíme úvodní hlášku.
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     StatusMessage = $"▶ {song.Title}";
                 });
+
+                // Spustit prefetch pro další skladbu ve frontě na pozadí
+                TriggerPrefetchNextSong();
             }
             else
             {
-                StatusMessage = "❌ GetAudioStreamUrlAsync vrátilo NULL — nepodařilo se získat stream.";
+                StatusMessage = "❌ Nepodařilo se získat audio stream.";
                 VmLog("ERROR: streamUrl is null");
             }
         }
@@ -1972,6 +2038,7 @@ public partial class MainViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
 
     private static void VmLog(string message)
     {
@@ -2157,8 +2224,10 @@ public partial class MainViewModel : ObservableObject
                     IsLoggedIn = true;
                     UserProfileName = "Můj účet";
                     StatusMessage = "Relace obnovena.";
-                    
-                    await LoadLibraryAsync();
+
+                    // Spustit domovskou stránku i knihovnu paralelně pro bleskový start
+                    _ = Task.Run(LoadHomeRecommendationsAsync);
+                    _ = Task.Run(LoadLibraryAsync);
                     return;
                 }
             }
@@ -2185,6 +2254,7 @@ public partial class MainViewModel : ObservableObject
             UserProfileName = "Můj účet";
             StatusMessage = "Přihlášení uloženo!";
             
+            _ = Task.Run(LoadHomeRecommendationsAsync);
             _ = Task.Run(LoadLibraryAsync);
         }
         catch (Exception ex)
@@ -2199,7 +2269,24 @@ public partial class MainViewModel : ObservableObject
         {
             await _ytService.EnsureInitializedAsync();
             var sections = await _ytService.GetHomeSectionsAsync();
-            var homeSongs = await _ytService.GetHomeRecommendationsAsync();
+
+            // Optimalizace: Extrahovat skladby přímo ze získaných sekcí bez zbytečného duplicitního volání sítě
+            List<SongModel>? homeSongs = null;
+            if (sections != null && sections.Count > 0)
+            {
+                homeSongs = sections.SelectMany(s => s.Items)
+                                    .Where(i => i.Song != null)
+                                    .Select(i => i.Song!)
+                                    .GroupBy(s => s.VideoId)
+                                    .Select(g => g.First())
+                                    .Take(40)
+                                    .ToList();
+            }
+
+            if (homeSongs == null || homeSongs.Count == 0)
+            {
+                homeSongs = await _ytService.GetHomeRecommendationsAsync();
+            }
             
             // Pokud Youtube vrátí prázdný seznam (např. u nepřihlášených účtů), uděláme fallback search
             if ((homeSongs == null || homeSongs.Count == 0) && (sections == null || sections.Count == 0))
@@ -2251,40 +2338,36 @@ public partial class MainViewModel : ObservableObject
         MainThread.BeginInvokeOnMainThread(() =>
         {
             IsBusy = true;
-            StatusMessage = "Načítám domovskou obrazovku a knihovnu z Melodium...";
+            StatusMessage = "Načítám knihovnu...";
         });
         try
         {
             await _ytService.EnsureInitializedAsync();
 
-            try
+            // Uživatelský profil na pozadí bez blokování knihovny
+            _ = Task.Run(async () =>
             {
-                var profile = await _ytService.GetAccountProfileAsync();
-                if (!string.IsNullOrEmpty(profile.Name))
+                try
                 {
-                    MainThread.BeginInvokeOnMainThread(() =>
+                    var profile = await _ytService.GetAccountProfileAsync();
+                    if (!string.IsNullOrEmpty(profile.Name))
                     {
-                        UserProfileName = profile.Name;
-                    });
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            UserProfileName = profile.Name;
+                        });
+                    }
                 }
-            }
-            catch { }
-            
-            _ = Task.Run(LoadHomeRecommendationsAsync);
-            
+                catch { }
+            });
+
+            // Fáze 1 (prioritní): Playlisty a oblíbené skladby (zobrazují se v postranním panelu)
             IsLikedSongsLoading = true;
-            var songsTask = _ytService.GetLibrarySongsAsync();
             var playlistsTask = _ytService.GetLibraryPlaylistsAsync();
-            var albumsTask = _ytService.GetLibraryAlbumsAsync();
-            var artistsTask = _ytService.GetLibraryArtistsAsync();
             var likedTask = _ytService.GetLikedSongsAsync();
 
-            await Task.WhenAll(songsTask, playlistsTask, albumsTask, artistsTask, likedTask);
-
-            var songs = await songsTask;
+            await Task.WhenAll(playlistsTask, likedTask);
             var playlists = await playlistsTask;
-            var albums = await albumsTask;
-            var artists = await artistsTask;
             var likedDetails = await likedTask;
 
             MainThread.BeginInvokeOnMainThread(() =>
@@ -2297,16 +2380,29 @@ public partial class MainViewModel : ObservableObject
                 }
                 IsLikedSongsLoading = false;
 
+                LibraryPlaylists.Clear();
+                foreach (var p in playlists) LibraryPlaylists.Add(p);
+                UpdateEditablePlaylists();
+            });
+
+            // Fáze 2: Skladby, alba a interpreti
+            var songsTask = _ytService.GetLibrarySongsAsync();
+            var albumsTask = _ytService.GetLibraryAlbumsAsync();
+            var artistsTask = _ytService.GetLibraryArtistsAsync();
+
+            await Task.WhenAll(songsTask, albumsTask, artistsTask);
+            var songs = await songsTask;
+            var albums = await albumsTask;
+            var artists = await artistsTask;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
                 LibrarySongs.Clear();
                 foreach (var s in songs) LibrarySongs.Add(s);
                 if (LibrarySongs.Count == 0 && LikedSongs.Count > 0)
                 {
                     foreach (var ls in LikedSongs) LibrarySongs.Add(ls);
                 }
-
-                LibraryPlaylists.Clear();
-                foreach (var p in playlists) LibraryPlaylists.Add(p);
-                UpdateEditablePlaylists();
 
                 LibraryAlbums.Clear();
                 foreach (var a in albums) LibraryAlbums.Add(a);
