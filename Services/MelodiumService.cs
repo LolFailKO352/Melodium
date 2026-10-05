@@ -1393,22 +1393,32 @@ namespace Melodium.Services
         }
         // --- Nové funkce pro Domů a Rádio ---
 
-        public async Task<List<HomeSectionModel>> GetHomeSectionsAsync()
+        private readonly Dictionary<string, string> _homeMoodChips = new(StringComparer.OrdinalIgnoreCase);
+        public IReadOnlyDictionary<string, string> HomeMoodChips => _homeMoodChips;
+
+        public async Task<List<HomeSectionModel>> GetHomeSectionsAsync(string? @params = null)
         {
             await EnsureInitializedAsync();
             var sections = new List<HomeSectionModel>();
 
             try
             {
-                var body = new
-                {
-                    context = CreateInnertubeContext(),
-                    browseId = "FEmusic_home"
-                };
+                var body = @params != null
+                    ? (object)new { context = CreateInnertubeContext(), browseId = "FEmusic_home", @params = @params }
+                    : (object)new { context = CreateInnertubeContext(), browseId = "FEmusic_home" };
 
                 var root = await PostInnertubeAsync("browse", body);
                 if (root != null)
                 {
+                    if (@params == null)
+                    {
+                        var chipNodes = root?["contents"]?["singleColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["header"]?["chipCloudRenderer"]?["chips"]?.AsArray();
+                        if (chipNodes != null)
+                        {
+                            ParseHomeChips(chipNodes);
+                        }
+                    }
+
                     var sectionNodes = root?["contents"]?["singleColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["contents"]?.AsArray();
                     if (sectionNodes != null)
                     {
@@ -1448,6 +1458,170 @@ namespace Melodium.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Chyba při stahování Home sekcí: {ex.Message}");
                 Console.WriteLine($"Chyba při stahování Home sekcí: {ex.Message}");
+            }
+
+            return sections;
+        }
+
+        private void ParseHomeChips(System.Text.Json.Nodes.JsonArray chipNodes)
+        {
+            try
+            {
+                _homeMoodChips.Clear();
+                foreach (var cNode in chipNodes)
+                {
+                    var chip = cNode?["chipCloudChipRenderer"];
+                    if (chip == null) continue;
+                    var textRuns = chip?["text"]?["runs"]?.AsArray();
+                    string? text = textRuns?.FirstOrDefault()?["text"]?.ToString();
+                    string? chipParam = chip?["navigationEndpoint"]?["browseEndpoint"]?["params"]?.ToString();
+                    if (!string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(chipParam))
+                    {
+                        _homeMoodChips[text] = chipParam;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Chyba při parsování chips: {ex.Message}");
+            }
+        }
+
+        public string? FindMoodParam(string mood)
+        {
+            if (string.IsNullOrWhiteSpace(mood)) return null;
+
+            if (_homeMoodChips.TryGetValue(mood, out var exactParam))
+                return exactParam;
+
+            string lower = mood.ToLowerInvariant().Trim();
+            foreach (var kvp in _homeMoodChips)
+            {
+                string key = kvp.Key.ToLowerInvariant();
+                if (key == lower) return kvp.Value;
+
+                if (lower.Contains("relax") && key.Contains("relax")) return kvp.Value;
+                if ((lower.Contains("energ") || lower.Contains("party") || lower.Contains("párty")) &&
+                    (key.Contains("energ") || key.Contains("party") || key.Contains("párty"))) return kvp.Value;
+                if ((lower.Contains("cvič") || lower.Contains("workout")) &&
+                    (key.Contains("workout") || key.Contains("cvič"))) return kvp.Value;
+                if ((lower.Contains("soustřed") || lower.Contains("focus")) &&
+                    (key.Contains("focus") || key.Contains("soustřed"))) return kvp.Value;
+                if ((lower.Contains("dojížd") || lower.Contains("commute")) &&
+                    (key.Contains("commute") || key.Contains("dojížd"))) return kvp.Value;
+                if ((lower.Contains("spán") || lower.Contains("sleep")) &&
+                    (key.Contains("sleep") || key.Contains("spán"))) return kvp.Value;
+                if ((lower.Contains("romant") || lower.Contains("romance")) &&
+                    (key.Contains("romance") || key.Contains("romant"))) return kvp.Value;
+            }
+
+            return null;
+        }
+
+        public async Task<List<HomeSectionModel>> GetMoodHomeSectionsAsync(string mood)
+        {
+            var sections = new List<HomeSectionModel>();
+
+            // 1. Zkusit nativní YouTube Music browse s parametrem chipu
+            var chipParam = FindMoodParam(mood);
+            if (!string.IsNullOrEmpty(chipParam))
+            {
+                try
+                {
+                    var nativeSections = await GetHomeSectionsAsync(chipParam);
+                    if (nativeSections != null && nativeSections.Count > 0)
+                    {
+                        return nativeSections;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Chyba při stahování nativních sekcí nálady {mood}: {ex.Message}");
+                }
+            }
+
+            // 2. Fallback syntéza: skladby, playlisty a alba pro danou náladu/žánr
+            try
+            {
+                var songsTask = GetMoodSongsAsync(mood);
+                var playlistsTask = SearchPlaylistsAsync($"{mood}");
+                var albumsTask = SearchAlbumsAsync($"{mood}");
+
+                await Task.WhenAll(songsTask, playlistsTask, albumsTask);
+
+                var songs = await songsTask;
+                var playlists = await playlistsTask;
+                var albums = await albumsTask;
+
+                if (songs != null && songs.Count > 0)
+                {
+                    var songSection = new HomeSectionModel
+                    {
+                        Title = $"Doporučené skladby pro náladu {mood} 🎶",
+                        Strapline = "SKLADBY"
+                    };
+                    foreach (var s in songs.Take(25))
+                    {
+                        songSection.Items.Add(new HomeItemModel
+                        {
+                            Type = HomeItemType.Song,
+                            Id = s.VideoId,
+                            Title = s.Title,
+                            Subtitle = s.Artist,
+                            ThumbnailUrl = s.ThumbnailUrl,
+                            Song = s
+                        });
+                    }
+                    sections.Add(songSection);
+                }
+
+                if (playlists != null && playlists.Count > 0)
+                {
+                    var plSection = new HomeSectionModel
+                    {
+                        Title = $"Oblíbené {mood} playlisty 📀",
+                        Strapline = "PLAYLISTY"
+                    };
+                    foreach (var pl in playlists.Take(15))
+                    {
+                        plSection.Items.Add(new HomeItemModel
+                        {
+                            Type = HomeItemType.Playlist,
+                            Id = pl.Id,
+                            Title = pl.Title,
+                            Subtitle = pl.Creator,
+                            ThumbnailUrl = pl.ThumbnailUrl,
+                            Playlist = pl
+                        });
+                    }
+                    sections.Add(plSection);
+                }
+
+                if (albums != null && albums.Count > 0)
+                {
+                    var albumSection = new HomeSectionModel
+                    {
+                        Title = $"Populární alba ({mood}) 💿",
+                        Strapline = "ALBA"
+                    };
+                    foreach (var a in albums.Take(15))
+                    {
+                        albumSection.Items.Add(new HomeItemModel
+                        {
+                            Type = HomeItemType.Album,
+                            Id = a.Id,
+                            Title = a.Title,
+                            Subtitle = a.Artist,
+                            ThumbnailUrl = a.ThumbnailUrl,
+                            Album = a
+                        });
+                    }
+                    sections.Add(albumSection);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Chyba při syntéze sekcí pro {mood}: {ex.Message}");
             }
 
             return sections;

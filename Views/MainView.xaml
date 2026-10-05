@@ -18,6 +18,7 @@
         <converters:BoolToDoubleConverter x:Key="BoolToLyricFontSize" TrueValue="20.0" FalseValue="16.0" />
         <converters:BoolToVector3Converter x:Key="BoolToLyricScale" TrueScale="1.04" FalseScale="1.0" />
         <converters:BoolToThicknessConverter x:Key="BoolToLyricBorderThick" TrueValue="1.0" FalseValue="0.0" />
+        <converters:StringEqualsToFontWeightConverter x:Key="StringToFontWeight" />
 
         <SolidColorBrush x:Key="MelodiumAccentBrush" Color="#28C6D0" />
         <SolidColorBrush x:Key="MelodiumCardBorderBrush" Color="#2D2F3C" />
@@ -27,6 +28,23 @@
         <SolidColorBrush x:Key="MelodiumTabActiveBgBrush" Color="#2E3040" />
         <SolidColorBrush x:Key="MelodiumLyricActiveBgBrush" Color="#2028C6D0" />
         <SolidColorBrush x:Key="MelodiumLyricActiveBorderBrush" Color="#4428C6D0" />
+
+        <!-- Chip styles (YouTube Music style) -->
+        <SolidColorBrush x:Key="MelodiumChipActiveBgBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="MelodiumChipActiveFgBrush" Color="#0F0F14" />
+        <SolidColorBrush x:Key="MelodiumChipActiveBorderBrush" Color="#FFFFFF" />
+
+        <SolidColorBrush x:Key="MelodiumChipInactiveBgBrush" Color="#22232E" />
+        <SolidColorBrush x:Key="MelodiumChipInactiveFgBrush" Color="#E1E1E6" />
+        <SolidColorBrush x:Key="MelodiumChipInactiveBorderBrush" Color="#343545" />
+
+        <converters:BoolToBrushConverter x:Key="BoolToChipBg" TrueBrush="{StaticResource MelodiumChipActiveBgBrush}" FalseBrush="{StaticResource MelodiumChipInactiveBgBrush}" />
+        <converters:BoolToBrushConverter x:Key="BoolToChipFg" TrueBrush="{StaticResource MelodiumChipActiveFgBrush}" FalseBrush="{StaticResource MelodiumChipInactiveFgBrush}" />
+        <converters:BoolToBrushConverter x:Key="BoolToChipBorder" TrueBrush="{StaticResource MelodiumChipActiveBorderBrush}" FalseBrush="{StaticResource MelodiumChipInactiveBorderBrush}" />
+
+        <converters:StringEqualsToBrushConverter x:Key="StringToChipBg" TrueBrush="{StaticResource MelodiumChipActiveBgBrush}" FalseBrush="{StaticResource MelodiumChipInactiveBgBrush}" />
+        <converters:StringEqualsToBrushConverter x:Key="StringToChipFg" TrueBrush="{StaticResource MelodiumChipActiveFgBrush}" FalseBrush="{StaticResource MelodiumChipInactiveFgBrush}" />
+        <converters:StringEqualsToBrushConverter x:Key="StringToChipBorder" TrueBrush="{StaticResource MelodiumChipActiveBorderBrush}" FalseBrush="{StaticResource MelodiumChipInactiveBorderBrush}" />
 
         <converters:BoolToBrushConverter x:Key="BoolToLyricBrush" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="{StaticResource MelodiumMutedBrush}" />
         <converters:BoolToBrushConverter x:Key="BoolToLyricBg" TrueBrush="{StaticResource MelodiumLyricActiveBgBrush}" FalseBrush="{StaticResource MelodiumTransparentBrush}" />
@@ -160,36 +178,28 @@
                             <StackPanel Spacing="28" Padding="0,0,0,32">
                                 
                                 <!-- Quick Mood Pills (YouTube Music Style) -->
-                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Vše" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🎶 Vše" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Relax" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🧘 Relax" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Energie" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="⚡ Energie" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Cvičení" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🏋️ Cvičení" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Soustředění" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🧠 Soustředění" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Párty" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🎉 Párty" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Rock" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🎸 Rock" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Pop" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🎤 Pop" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                        <Button Command="{x:Bind ViewModel.SelectMoodCommand}" CommandParameter="Hip-Hop" CornerRadius="16" Padding="14,6">
-                                            <TextBlock Text="🎧 Hip-Hop" FontWeight="SemiBold" FontSize="12" />
-                                        </Button>
-                                    </StackPanel>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.MoodFilters, Mode=OneWay}">
+                                        <ItemsRepeater.Layout>
+                                            <StackLayout Orientation="Horizontal" Spacing="8" />
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="models:MoodFilterModel">
+                                                <Button Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnMoodFilterClick"
+                                                        CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                                        Background="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToChipBg}}"
+                                                        BorderBrush="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToChipBorder}}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{x:Bind Icon}" FontSize="12" VerticalAlignment="Center"
+                                                                   Foreground="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToChipFg}}" />
+                                                        <TextBlock Text="{x:Bind Title}" FontSize="12" VerticalAlignment="Center"
+                                                                   FontWeight="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToFontWeight}}"
+                                                                   Foreground="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToChipFg}}" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
                                 </ScrollViewer>
 
                                 <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
@@ -470,20 +480,40 @@
 
                             <!-- Filter Chips (YouTube Music style: Vše, Skladby, Alba, Interpreti, Playlisty) -->
                             <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Vše" CornerRadius="16" Padding="14,6">
-                                    <TextBlock Text="Vše" FontWeight="SemiBold" FontSize="12" />
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Vše" CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                        Background="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBg}, ConverterParameter='Vše'}"
+                                        BorderBrush="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBorder}, ConverterParameter='Vše'}">
+                                    <TextBlock Text="Vše" FontSize="12"
+                                               FontWeight="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToFontWeight}, ConverterParameter='Vše'}"
+                                               Foreground="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipFg}, ConverterParameter='Vše'}" />
                                 </Button>
-                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Skladby" CornerRadius="16" Padding="14,6">
-                                    <TextBlock Text="Skladby" FontWeight="SemiBold" FontSize="12" />
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Skladby" CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                        Background="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBg}, ConverterParameter='Skladby'}"
+                                        BorderBrush="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBorder}, ConverterParameter='Skladby'}">
+                                    <TextBlock Text="Skladby" FontSize="12"
+                                               FontWeight="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToFontWeight}, ConverterParameter='Skladby'}"
+                                               Foreground="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipFg}, ConverterParameter='Skladby'}" />
                                 </Button>
-                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Alba" CornerRadius="16" Padding="14,6">
-                                    <TextBlock Text="Alba" FontWeight="SemiBold" FontSize="12" />
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Alba" CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                        Background="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBg}, ConverterParameter='Alba'}"
+                                        BorderBrush="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBorder}, ConverterParameter='Alba'}">
+                                    <TextBlock Text="Alba" FontSize="12"
+                                               FontWeight="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToFontWeight}, ConverterParameter='Alba'}"
+                                               Foreground="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipFg}, ConverterParameter='Alba'}" />
                                 </Button>
-                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Interpreti" CornerRadius="16" Padding="14,6">
-                                    <TextBlock Text="Interpreti" FontWeight="SemiBold" FontSize="12" />
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Interpreti" CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                        Background="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBg}, ConverterParameter='Interpreti'}"
+                                        BorderBrush="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBorder}, ConverterParameter='Interpreti'}">
+                                    <TextBlock Text="Interpreti" FontSize="12"
+                                               FontWeight="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToFontWeight}, ConverterParameter='Interpreti'}"
+                                               Foreground="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipFg}, ConverterParameter='Interpreti'}" />
                                 </Button>
-                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Playlisty" CornerRadius="16" Padding="14,6">
-                                    <TextBlock Text="Playlisty" FontWeight="SemiBold" FontSize="12" />
+                                <Button Command="{x:Bind ViewModel.SetSearchFilterCommand}" CommandParameter="Playlisty" CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                        Background="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBg}, ConverterParameter='Playlisty'}"
+                                        BorderBrush="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipBorder}, ConverterParameter='Playlisty'}">
+                                    <TextBlock Text="Playlisty" FontSize="12"
+                                               FontWeight="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToFontWeight}, ConverterParameter='Playlisty'}"
+                                               Foreground="{x:Bind ViewModel.SelectedSearchFilter, Mode=OneWay, Converter={StaticResource StringToChipFg}, ConverterParameter='Playlisty'}" />
                                 </Button>
                             </StackPanel>
                             

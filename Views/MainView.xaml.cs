@@ -365,6 +365,16 @@ public sealed partial class MainView : UserControl
         }
     }
 
+    private void OnMoodFilterClick(object sender, RoutedEventArgs e)
+    {
+        var element = sender as FrameworkElement;
+        var filter = element?.Tag as MoodFilterModel ?? element?.DataContext as MoodFilterModel;
+        if (filter != null && ViewModel != null)
+        {
+            _ = ViewModel.SelectMoodAsync(filter.Title);
+        }
+    }
+
     private void OnCurrentSongArtistClick(object sender, RoutedEventArgs e)
     {
         if (ViewModel?.CurrentSong != null)

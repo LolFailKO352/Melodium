@@ -71,6 +71,19 @@ public class BoolToFontWeightConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
 }
 
+public class StringEqualsToFontWeightConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        string? val = value?.ToString();
+        string? param = parameter?.ToString();
+        bool matches = string.Equals(val, param, StringComparison.OrdinalIgnoreCase);
+        return matches ? Microsoft.UI.Text.FontWeights.Bold : Microsoft.UI.Text.FontWeights.Normal;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+}
+
 public class BoolToDoubleConverter : IValueConverter
 {
     public double TrueValue { get; set; } = 1.0;
@@ -139,6 +152,37 @@ public class BoolToThicknessConverter : IValueConverter
         bool b = value is bool flag && flag;
         double v = b ? TrueValue : FalseValue;
         return new Thickness(v);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+}
+
+public class StringEqualsToBrushConverter : DependencyObject, IValueConverter
+{
+    public static readonly DependencyProperty TrueBrushProperty =
+        DependencyProperty.Register(nameof(TrueBrush), typeof(Microsoft.UI.Xaml.Media.Brush), typeof(StringEqualsToBrushConverter), new PropertyMetadata(null));
+
+    public static readonly DependencyProperty FalseBrushProperty =
+        DependencyProperty.Register(nameof(FalseBrush), typeof(Microsoft.UI.Xaml.Media.Brush), typeof(StringEqualsToBrushConverter), new PropertyMetadata(null));
+
+    public Microsoft.UI.Xaml.Media.Brush? TrueBrush
+    {
+        get => (Microsoft.UI.Xaml.Media.Brush?)GetValue(TrueBrushProperty);
+        set => SetValue(TrueBrushProperty, value);
+    }
+
+    public Microsoft.UI.Xaml.Media.Brush? FalseBrush
+    {
+        get => (Microsoft.UI.Xaml.Media.Brush?)GetValue(FalseBrushProperty);
+        set => SetValue(FalseBrushProperty, value);
+    }
+
+    public object? Convert(object value, Type targetType, object parameter, string language)
+    {
+        string? val = value?.ToString();
+        string? param = parameter?.ToString();
+        bool matches = string.Equals(val, param, StringComparison.OrdinalIgnoreCase);
+        return matches ? TrueBrush : FalseBrush;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();

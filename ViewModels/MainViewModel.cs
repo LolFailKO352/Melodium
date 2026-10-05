@@ -663,6 +663,7 @@ public partial class MainViewModel : ObservableObject
     // --- Explore & Náladové kategorie 🎶 ---
     [ObservableProperty] public partial ObservableCollection<SongModel> ExploreCharts { get; set; } = new();
     [ObservableProperty] public partial ObservableCollection<MoodModel> MoodCategories { get; set; } = new();
+    [ObservableProperty] public partial ObservableCollection<MoodFilterModel> MoodFilters { get; set; } = new();
     [ObservableProperty] public partial string SelectedMood { get; set; } = "Vše";
     [ObservableProperty] public partial bool IsExploreLoading { get; set; }
 
@@ -869,11 +870,27 @@ public partial class MainViewModel : ObservableObject
         var savedLang = Preferences.Default.Get("AppLanguage", "cs");
         SelectedLanguage = Languages.FirstOrDefault(c => c.Name == savedLang) ?? Languages.FirstOrDefault(c => c.TwoLetterISOLanguageName == "cs");
 
+        InitializeMoodFilters();
+
         // Načteme uložené přihlášení a knihovnu při startu
         _ = Task.Run(LoadSavedSessionAsync);
 
         // Zkontrolujeme dostupnost aktualizací na pozadí při startu
         _ = Task.Run(CheckForUpdatesOnStartupAsync);
+    }
+
+    private void InitializeMoodFilters()
+    {
+        MoodFilters.Clear();
+        MoodFilters.Add(new() { Title = "Vše", Icon = "🎶", IsSelected = true });
+        MoodFilters.Add(new() { Title = "Relax", Icon = "🧘", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Energie", Icon = "⚡", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Cvičení", Icon = "🏋️", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Soustředění", Icon = "🧠", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Párty", Icon = "🎉", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Rock", Icon = "🎸", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Pop", Icon = "🎤", IsSelected = false });
+        MoodFilters.Add(new() { Title = "Hip-Hop", Icon = "🎧", IsSelected = false });
     }
 
     private void OnAudioPositionChanged(TimeSpan position, TimeSpan duration)
@@ -2192,6 +2209,19 @@ public partial class MainViewModel : ObservableObject
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                // Synchronizovat parametry z YouTube Music chips
+                if (_ytService.HomeMoodChips.Count > 0)
+                {
+                    foreach (var chip in _ytService.HomeMoodChips)
+                    {
+                        var existing = MoodFilters.FirstOrDefault(m => string.Equals(m.Title, chip.Key, StringComparison.OrdinalIgnoreCase));
+                        if (existing != null)
+                        {
+                            existing.Params = chip.Value;
+                        }
+                    }
+                }
+
                 HomeSections.Clear();
                 if (sections != null && sections.Count > 0)
                 {
@@ -2705,24 +2735,58 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task SelectMoodAsync(string mood)
     {
+        if (string.IsNullOrWhiteSpace(mood)) return;
+
+        // Toggle: pokud uživatel klikne na již aktivní náladu (která není "Vše"), vrátíme se zpět na "Vše"
+        if (string.Equals(SelectedMood, mood, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(mood, "Vše", StringComparison.OrdinalIgnoreCase))
+        {
+            mood = "Vše";
+        }
+
         SelectedMood = mood;
+        foreach (var f in MoodFilters)
+        {
+            f.IsSelected = string.Equals(f.Title, mood, StringComparison.OrdinalIgnoreCase);
+        }
+
         IsBusy = true;
-        StatusMessage = $"Načítám hudbu pro náladu: {mood} 🎶...";
+        StatusMessage = mood == "Vše" ? "Načítám domovskou stránku 🎶..." : $"Načítám hudbu pro: {mood} 🎶...";
         try
         {
-            if (mood == "Vše")
+            if (string.Equals(mood, "Vše", StringComparison.OrdinalIgnoreCase))
             {
+                TextRecommendedMusic = "Doporučená hudba >";
                 await LoadHomeRecommendationsAsync();
             }
             else
             {
-                var songs = await _ytService.GetMoodSongsAsync(mood);
-                HomeRecommendations.Clear();
-                foreach (var s in songs)
+                TextRecommendedMusic = $"Doporučená hudba pro: {mood}";
+                var sections = await _ytService.GetMoodHomeSectionsAsync(mood);
+                MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    HomeRecommendations.Add(s);
-                }
-                StatusMessage = $"Nálada '{mood}': načteno {songs.Count} skladeb 🎶.";
+                    HomeSections.Clear();
+                    if (sections != null && sections.Count > 0)
+                    {
+                        foreach (var s in sections) HomeSections.Add(s);
+                        HasHomeSections = true;
+                    }
+                    else
+                    {
+                        HasHomeSections = false;
+                    }
+
+                    HomeRecommendations.Clear();
+                    var songSection = sections?.FirstOrDefault(s => s.Items.Any(i => i.IsSong));
+                    if (songSection != null)
+                    {
+                        foreach (var item in songSection.Items.Where(i => i.Song != null))
+                        {
+                            HomeRecommendations.Add(item.Song!);
+                        }
+                    }
+                });
+                StatusMessage = $"Nálada '{mood}' načtena 🎶.";
             }
         }
         catch (Exception ex)
