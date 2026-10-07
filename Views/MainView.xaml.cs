@@ -27,14 +27,64 @@ public sealed partial class MainView : UserControl
 
         this.Loaded += (s, e) =>
         {
-            // Select Home initially
-            NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
             SetupBlurEffect();
+            SyncNavSelection(ViewModel?.CurrentView ?? "Home");
+
             if (ViewModel != null)
             {
                 ViewModel.ActiveLyricChanged += OnActiveLyricChanged;
+                ViewModel.PropertyChanged += (sender, args) =>
+                {
+                    if (args.PropertyName == nameof(MainViewModel.CurrentView))
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            SyncNavSelection(ViewModel.CurrentView);
+                        });
+                    }
+                };
             }
         };
+    }
+
+    private NavigationViewItem? FindNavItem(string? tag)
+    {
+        if (string.IsNullOrEmpty(tag)) return null;
+        return NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag)
+            ?? NavView.FooterMenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag);
+    }
+
+    private void SyncNavSelection(string? viewName)
+    {
+        if (string.IsNullOrEmpty(viewName)) return;
+
+        var item = FindNavItem(viewName);
+        if (item != null)
+        {
+            NavView.SelectedItem = item;
+        }
+        else if (viewName == "Home")
+        {
+            NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
+        }
+        else
+        {
+            NavView.SelectedItem = null;
+        }
+
+        if (TitleBarBackButton != null)
+        {
+            TitleBarBackButton.IsEnabled = viewName != "Home";
+        }
+    }
+
+    private void OnTitleBarBackClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.GoBackCommand.Execute(null);
+            SyncNavSelection(ViewModel.CurrentView);
+        }
     }
 
     private void OnActiveLyricChanged(LyricLineModel activeLine)
@@ -133,11 +183,7 @@ public sealed partial class MainView : UserControl
                 else
                 {
                     OpenLoginWindow();
-                    var activeItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == ViewModel?.CurrentView);
-                    if (activeItem != null)
-                    {
-                        NavView.SelectedItem = activeItem;
-                    }
+                    SyncNavSelection(ViewModel?.CurrentView);
                 }
                 return;
             }
@@ -208,11 +254,88 @@ public sealed partial class MainView : UserControl
         if (ViewModel != null)
         {
             ViewModel.NavigateCommand.Execute("Home");
-            var homeItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == "Home");
-            if (homeItem != null)
+            SyncNavSelection("Home");
+        }
+    }
+
+    private void OnHeroPrevClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.PreviousHeroSpotlightCommand.Execute(null);
+    }
+
+    private void OnHeroNextClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.NextHeroSpotlightCommand.Execute(null);
+    }
+
+    private void OnHeroDotClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && int.TryParse(fe.Tag?.ToString(), out int idx))
+        {
+            ViewModel?.SelectHeroSpotlight(idx);
+        }
+    }
+
+    private void OnHeroExploreClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.NavigateCommand.Execute("Explore");
+            SyncNavSelection("Explore");
+        }
+    }
+
+    private void OnHeroChartsClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            if (ViewModel.ExploreCharts.Count > 0)
             {
-                NavView.SelectedItem = homeItem;
+                _ = ViewModel.PlayAllExploreChartsCommand.ExecuteAsync(null);
             }
+            else
+            {
+                ViewModel.NavigateCommand.Execute("Explore");
+                SyncNavSelection("Explore");
+            }
+        }
+    }
+
+    private void OnHeroLibraryClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.NavigateCommand.Execute("Library");
+            SyncNavSelection("Library");
+        }
+    }
+
+    private void OnTrendingSongsPrevClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.PreviousTrendingSongsCommand.Execute(null);
+    }
+
+    private void OnTrendingSongsNextClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.NextTrendingSongsCommand.Execute(null);
+    }
+
+    private void OnTrendingAlbumsPrevClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.PreviousTrendingAlbumsCommand.Execute(null);
+    }
+
+    private void OnTrendingAlbumsNextClick(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.NextTrendingAlbumsCommand.Execute(null);
+    }
+
+    private void OnNavigateToExploreClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.NavigateCommand.Execute("Explore");
+            SyncNavSelection("Explore");
         }
     }
 
@@ -669,11 +792,7 @@ public sealed partial class MainView : UserControl
         if (ViewModel != null)
         {
             ViewModel.ClosePlaylistCommand.Execute(null);
-            var item = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == ViewModel.CurrentView);
-            if (item != null)
-            {
-                NavView.SelectedItem = item;
-            }
+            SyncNavSelection(ViewModel.CurrentView);
         }
     }
 
@@ -759,11 +878,7 @@ public sealed partial class MainView : UserControl
         if (ViewModel != null)
         {
             ViewModel.GoBackCommand.Execute(null);
-            var item = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == ViewModel.CurrentView);
-            if (item != null)
-            {
-                NavView.SelectedItem = item;
-            }
+            SyncNavSelection(ViewModel.CurrentView);
         }
     }
 

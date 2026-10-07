@@ -187,3 +187,69 @@ public class StringEqualsToBrushConverter : DependencyObject, IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
 }
+
+public class IntEqualsToDoubleConverter : IValueConverter
+{
+    public double TrueValue { get; set; } = 18.0;
+    public double FalseValue { get; set; } = 6.0;
+
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is int val && int.TryParse(parameter?.ToString(), out int target))
+        {
+            return val == target ? TrueValue : FalseValue;
+        }
+        return FalseValue;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+}
+
+public class IntEqualsToBrushConverter : DependencyObject, IValueConverter
+{
+    public static readonly DependencyProperty TrueBrushProperty =
+        DependencyProperty.Register(nameof(TrueBrush), typeof(Microsoft.UI.Xaml.Media.Brush), typeof(IntEqualsToBrushConverter), new PropertyMetadata(null));
+
+    public static readonly DependencyProperty FalseBrushProperty =
+        DependencyProperty.Register(nameof(FalseBrush), typeof(Microsoft.UI.Xaml.Media.Brush), typeof(IntEqualsToBrushConverter), new PropertyMetadata(null));
+
+    public Microsoft.UI.Xaml.Media.Brush? TrueBrush
+    {
+        get => (Microsoft.UI.Xaml.Media.Brush?)GetValue(TrueBrushProperty);
+        set => SetValue(TrueBrushProperty, value);
+    }
+
+    public Microsoft.UI.Xaml.Media.Brush? FalseBrush
+    {
+        get => (Microsoft.UI.Xaml.Media.Brush?)GetValue(FalseBrushProperty);
+        set => SetValue(FalseBrushProperty, value);
+    }
+
+    public object? Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is int val && int.TryParse(parameter?.ToString(), out int target))
+        {
+            return val == target ? TrueBrush : FalseBrush;
+        }
+        return FalseBrush;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+}
+
+public class StringToImageSourceConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, string language)
+    {
+        if (value is string url && !string.IsNullOrWhiteSpace(url))
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(uri);
+            }
+        }
+        return null;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, string language) => throw new NotImplementedException();
+}

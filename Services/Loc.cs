@@ -19,6 +19,8 @@ public partial class Loc : ObservableObject
     [ObservableProperty] public partial string TextSettings { get; set; } = "Settings";
     [ObservableProperty] public partial string TextLanguageSelection { get; set; } = "Language Selection";
     [ObservableProperty] public partial string TextLanguageDescription { get; set; } = "Select your preferred language. All world languages are supported.";
+    [ObservableProperty] public partial string TextResumeFromOtherDevice { get; set; } = "Resume from another device";
+    [ObservableProperty] public partial string TextResumeAction { get; set; } = "Resume";
     [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Search songs, artists, albums...";
     [ObservableProperty] public partial string TextHeroSubtitle { get; set; } = "Listen to music without limits and without ads";
     [ObservableProperty] public partial string TextStartListening { get; set; } = "Start listening";

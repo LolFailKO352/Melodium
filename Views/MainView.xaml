@@ -56,11 +56,100 @@
         <converters:BoolToBrushConverter x:Key="BoolToLyricsTabBg" TrueBrush="{StaticResource MelodiumLyricActiveBgBrush}" FalseBrush="{StaticResource MelodiumTransparentBrush}" />
         <converters:BoolToBrushConverter x:Key="BoolToLyricsTabFg" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="{StaticResource MelodiumMutedBrush}" />
 
+        <converters:IntEqualsToDoubleConverter x:Key="IntEqualsToDouble" />
+        <converters:IntEqualsToBrushConverter x:Key="IntEqualsToBrush" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="#45485A" />
+        <converters:StringToImageSourceConverter x:Key="StringToImageSource" />
+
+        <Style x:Key="TitleBarIconButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style x:Key="HeroDotButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Height" Value="5" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+
+        <Style x:Key="HeroChevronButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="#700C0E14" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="SectionPaginationButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="#1CFFFFFF" />
+            <Setter Property="BorderBrush" Value="#25FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="GlassPillButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="Background" Value="#2028C6D0" />
+            <Setter Property="BorderBrush" Value="{StaticResource MelodiumAccentBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource MelodiumWhiteBrush}" />
+        </Style>
+
+        <Style x:Key="InteractiveTileCardButtonStyle" TargetType="Button">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style x:Key="MoodChipButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="PlainTextLinkButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
         <Style x:Key="MediaCardButtonStyle" TargetType="Button">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="8" />
             <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
@@ -71,15 +160,67 @@
     <!-- Main Content Grid -->
     <Grid RowDefinitions="Auto, *, Auto">
         
-        <!-- Custom TitleBar drag area -->
-        <Grid Grid.Row="0" x:Name="AppTitleBar" Height="40" Background="Transparent" ColumnDefinitions="Auto, *, Auto">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0" Spacing="8">
-                <TextBlock Text="🎶" FontSize="16" VerticalAlignment="Center" />
-                <TextBlock Text="Melodium 🎶" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        <!-- Custom TitleBar with Centered Search, Navigation Back & Profile (Microsoft Store Style) -->
+        <Grid Grid.Row="0" x:Name="AppTitleBar" Height="48" Background="Transparent" ColumnDefinitions="Auto, *, Auto">
+            
+            <!-- Left: Back Navigation Button & Brand Badge -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,12,0" Spacing="6">
+                <Button x:Name="TitleBarBackButton"
+                        Style="{StaticResource TitleBarIconButtonStyle}"
+                        Click="OnTitleBarBackClick"
+                        ToolTipService.ToolTip="Zpět"
+                        IsEnabled="False">
+                    <FontIcon Glyph="&#xE72B;" FontSize="12" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </Button>
+                
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,0,0,0" VerticalAlignment="Center">
+                    <Border Width="26" Height="26" CornerRadius="7" Background="{StaticResource MelodiumAccentBrush}">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="13" Foreground="#000000" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Melodium" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Center: Microsoft Store Global Pill SearchBox -->
+            <AutoSuggestBox
+                Grid.Column="1"
+                x:Name="SearchBox"
+                PlaceholderText="{x:Bind ViewModel.TextSearchPlaceholder, Mode=OneWay}"
+                Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
+                QueryIcon="Find"
+                QuerySubmitted="SearchBox_QuerySubmitted"
+                TextChanged="SearchBox_TextChanged"
+                KeyDown="SearchBox_KeyDown"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="480"
+                Height="34"
+                CornerRadius="17" />
+
+            <!-- Right: User Account Avatar & Window Caption Area Clearance -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,140,0" Spacing="8">
+                <Button Style="{StaticResource TitleBarIconButtonStyle}"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.UserAccountTooltip, Mode=OneWay}"
+                        Click="OnGoToLoginClick">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="{x:Bind ViewModel.UserProfileName, Mode=OneWay}" IsEnabled="False" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                            <MenuFlyoutSeparator Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                            <MenuFlyoutItem Text="{x:Bind ViewModel.TextLogout, Mode=OneWay}" Icon="Cancel" Command="{x:Bind ViewModel.LogoutCommand}" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                            <MenuFlyoutItem Text="{x:Bind ViewModel.TextLogin, Mode=OneWay}" Icon="Contact" Click="OnGoToLoginClick" Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                    <Grid Width="28" Height="28">
+                        <FontIcon Glyph="&#xE77B;" FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                        <Border CornerRadius="14" Background="{StaticResource MelodiumAccentBrush}" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                            <FontIcon Glyph="&#xE77B;" FontSize="12" Foreground="#000000" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Button>
             </StackPanel>
         </Grid>
 
-        <!-- Middle Section: Navigation & Views -->
+        <!-- Middle Section: Navigation & Views (Microsoft Store Left Rail) -->
         <Grid Grid.Row="1">
             <NavigationView
                 x:Name="NavView"
@@ -87,28 +228,40 @@
                 IsSettingsVisible="False"
                 IsBackButtonVisible="Collapsed"
                 SelectionChanged="NavView_SelectionChanged"
-                OpenPaneLength="200"
+                OpenPaneLength="210"
                 CompactPaneLength="56">
+
+                <NavigationView.Resources>
+                    <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#E6141520" />
+                    <SolidColorBrush x:Key="NavigationViewItemSelectionIndicatorForeground" Color="#28C6D0" />
+                </NavigationView.Resources>
                 
                 <NavigationView.MenuItems>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextHome, Mode=OneWay}" Tag="Home">
+                    <NavigationViewItem Content="{x:Bind ViewModel.TextHome, Mode=OneWay}"
+                                        Tag="Home"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextHome, Mode=OneWay}">
                         <NavigationViewItem.Icon>
                             <FontIcon Glyph="&#xE80F;" />
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextExplore, Mode=OneWay}" Tag="Explore">
+                    <NavigationViewItem Content="{x:Bind ViewModel.TextExplore, Mode=OneWay}"
+                                        Tag="Explore"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextExplore, Mode=OneWay}">
                         <NavigationViewItem.Icon>
                             <FontIcon Glyph="&#xE8A9;" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextLibrary, Mode=OneWay}" Tag="Library">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE8F1;" />
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
                 </NavigationView.MenuItems>
 
                 <NavigationView.FooterMenuItems>
+                    <NavigationViewItem Content="{x:Bind ViewModel.TextLibrary, Mode=OneWay}"
+                                        Tag="Library"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextLibrary, Mode=OneWay}">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE8F1;" />
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
                     <NavigationViewItem x:Name="AccountNavItem"
                                         Content="{x:Bind ViewModel.TextAccount, Mode=OneWay}"
                                         Tag="Login"
@@ -125,18 +278,20 @@
                             </MenuFlyout>
                         </NavigationViewItem.ContextFlyout>
                     </NavigationViewItem>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextSettings, Mode=OneWay}" Tag="Settings">
+                    <NavigationViewItem Content="{x:Bind ViewModel.TextSettings, Mode=OneWay}"
+                                        Tag="Settings"
+                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextSettings, Mode=OneWay}">
                         <NavigationViewItem.Icon>
                             <FontIcon Glyph="&#xE713;" />
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
                 </NavigationView.FooterMenuItems>
 
-                <!-- Content Header with Global Search -->
+                <!-- Content Container -->
                 <Grid RowDefinitions="Auto, *" Padding="24,8,24,0">
                     
-                    <!-- Top Bar: Search Box & Update Notification -->
-                    <StackPanel Grid.Row="0" Margin="0,0,0,20" Spacing="12">
+                    <!-- Top Notification (Updates) -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12" Spacing="8">
                         <InfoBar IsOpen="{x:Bind ViewModel.IsUpdateNotificationOpen, Mode=TwoWay}"
                                  Severity="Informational"
                                  Title="{x:Bind ViewModel.UpdateNotificationTitle, Mode=OneWay}"
@@ -157,18 +312,6 @@
                                 </StackPanel>
                             </InfoBar.Content>
                         </InfoBar>
-
-                        <AutoSuggestBox
-                            x:Name="SearchBox"
-                            PlaceholderText="{x:Bind ViewModel.TextSearchPlaceholder, Mode=OneWay}"
-                            Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
-                            QueryIcon="Find"
-                            QuerySubmitted="SearchBox_QuerySubmitted"
-                            TextChanged="SearchBox_TextChanged"
-                            KeyDown="SearchBox_KeyDown"
-                            HorizontalAlignment="Center"
-                            Width="540"
-                            CornerRadius="20" />
                     </StackPanel>
 
                     <!-- VIEWS CONTAINER -->
@@ -178,7 +321,205 @@
                         <ScrollViewer Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Home'}" VerticalScrollBarVisibility="Auto">
                             <StackPanel Spacing="28" Padding="0,0,0,32">
                                 
-                                <!-- Quick Mood Pills (YouTube Music Style) -->
+                                <!-- Cross-Device Playback Resume Banner (Microsoft Store Notification Style) -->
+                                <Border Visibility="{x:Bind ViewModel.HasCrossDeviceResumeSong, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                                        BorderBrush="{StaticResource MelodiumAccentBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="16,12"
+                                        Margin="0,0,0,4">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#202538" Offset="0" />
+                                            <GradientStop Color="#141824" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Grid ColumnDefinitions="Auto, *, Auto, Auto">
+                                        <!-- Animated / Static device icon -->
+                                        <Border Grid.Column="0" Width="38" Height="38" CornerRadius="19" Background="#2528C6D0" Margin="0,0,14,0">
+                                            <FontIcon Glyph="&#xE7F4;" FontSize="18" Foreground="{StaticResource MelodiumAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <!-- Message content -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="{x:Bind services:Loc.Instance.TextResumeFromOtherDevice, Mode=OneWay}" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" />
+                                            <TextBlock Text="{x:Bind ViewModel.CrossDeviceResumeDescription, Mode=OneWay}" FontSize="12" Foreground="#A0A8BA" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                        </StackPanel>
+
+                                        <!-- Resume Button -->
+                                        <Button Grid.Column="2"
+                                                Command="{x:Bind ViewModel.ResumeCrossDeviceSongCommand}"
+                                                Style="{ThemeResource AccentButtonStyle}"
+                                                CornerRadius="18"
+                                                Padding="18,7"
+                                                Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE768;" FontSize="13" />
+                                                <TextBlock Text="{x:Bind services:Loc.Instance.TextResumeAction, Mode=OneWay}" FontWeight="SemiBold" FontSize="13" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <!-- Dismiss Button -->
+                                        <Button Grid.Column="3"
+                                                Command="{x:Bind ViewModel.DismissCrossDeviceResumeCommand}"
+                                                Style="{StaticResource TitleBarIconButtonStyle}"
+                                                Width="32" Height="32"
+                                                CornerRadius="16"
+                                                ToolTipService.ToolTip="Zavřít">
+                                            <FontIcon Glyph="&#xE711;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 1. MICROSOFT STORE HERO SPOTLIGHT CAROUSEL -->
+                                <Grid ColumnDefinitions="1.55*, *" ColumnSpacing="16" Height="370">
+                                    
+                                    <!-- Left Column: Big Featured Spotlight Card (Minecraft Dungeons II style) -->
+                                    <Border Grid.Column="0" CornerRadius="12" Background="#181822" BorderBrush="{StaticResource MelodiumCardBorderBrush}" BorderThickness="1">
+                                        <Grid CornerRadius="12">
+                                            <!-- Background Artwork with fallback -->
+                                            <Image Source="{x:Bind ViewModel.FeaturedSpotlightThumbnail, Mode=OneWay, Converter={StaticResource StringToImageSource}}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            
+                                            <!-- Dark Gradient Overlay for text contrast -->
+                                            <Grid>
+                                                <Grid.Background>
+                                                     <LinearGradientBrush StartPoint="0,1" EndPoint="0.85,0.1">
+                                                        <GradientStop Color="#F80E1016" Offset="0.0" />
+                                                        <GradientStop Color="#D80E1016" Offset="0.45" />
+                                                        <GradientStop Color="#600E1016" Offset="0.75" />
+                                                        <GradientStop Color="#150E1016" Offset="1.0" />
+                                                    </LinearGradientBrush>
+                                                </Grid.Background>
+                                            </Grid>
+
+                                            <!-- Content Grid -->
+                                            <Grid Margin="24,20" RowDefinitions="Auto, *, Auto">
+                                                <!-- Top Badges -->
+                                                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                                                    <Border Background="{StaticResource MelodiumAccentBrush}" CornerRadius="6" Padding="9,4">
+                                                        <TextBlock Text="HLAVNÍ VÝBĚR" FontSize="11" FontWeight="Bold" Foreground="#0E1016" />
+                                                    </Border>
+                                                    <Border Background="#25FFFFFF" BorderBrush="#1CFFFFFF" BorderThickness="1" CornerRadius="6" Padding="9,4">
+                                                        <TextBlock Text="Melodium • Bez reklam" FontSize="11" FontWeight="SemiBold" Foreground="#E0E0E0" />
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Center / Bottom Content: Title, Subtitle, Play Button -->
+                                                <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Spacing="8" Margin="0,0,0,10">
+                                                    <TextBlock Text="{x:Bind ViewModel.FeaturedSpotlightTitle, Mode=OneWay}"
+                                                               FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"
+                                                               MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{x:Bind ViewModel.FeaturedSpotlightSubtitle, Mode=OneWay}"
+                                                               FontSize="13" Foreground="#B8C0D0" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                                    
+                                                    <Button Command="{x:Bind ViewModel.PlayFeaturedSpotlightCommand}"
+                                                            Style="{ThemeResource AccentButtonStyle}"
+                                                            CornerRadius="20" Padding="22,9" Margin="0,8,0,0">
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <FontIcon Glyph="&#xE768;" FontSize="13" />
+                                                            <TextBlock Text="Přehrát nyní" FontWeight="SemiBold" FontSize="13" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+
+                                                <!-- Bottom Center: Carousel Indicators -->
+                                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6" Margin="0,4,0,0">
+                                                    <Button Tag="0" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='0'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='0'}" />
+                                                    <Button Tag="1" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='1'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='1'}" />
+                                                    <Button Tag="2" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='2'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='2'}" />
+                                                    <Button Tag="3" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='3'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='3'}" />
+                                                    <Button Tag="4" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='4'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='4'}" />
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- Left / Right Carousel Navigation Chevrons -->
+                                            <Button Click="OnHeroPrevClick"
+                                                    Style="{StaticResource HeroChevronButtonStyle}"
+                                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                    Margin="10,0,0,0"
+                                                    ToolTipService.ToolTip="Předchozí">
+                                                <FontIcon Glyph="&#xE76B;" FontSize="13" Foreground="#FFFFFF" />
+                                            </Button>
+                                            <Button Click="OnHeroNextClick"
+                                                    Style="{StaticResource HeroChevronButtonStyle}"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                    Margin="0,0,10,0"
+                                                    ToolTipService.ToolTip="Další">
+                                                <FontIcon Glyph="&#xE76C;" FontSize="13" Foreground="#FFFFFF" />
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Right Column: Claude Card + 2 Small Cards (Witcher 3 & WhatsApp style) -->
+                                    <Grid Grid.Column="1" RowDefinitions="1.25*, *" RowSpacing="12">
+                                        <!-- Top Row: Medium Featured Card (Claude card style) -->
+                                        <Border Grid.Row="0" CornerRadius="12" Background="#1D1A27" BorderBrush="{StaticResource MelodiumCardBorderBrush}" BorderThickness="1">
+                                            <Grid CornerRadius="12">
+                                                <Grid.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                        <GradientStop Color="#271F36" Offset="0" />
+                                                        <GradientStop Color="#141320" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Grid.Background>
+
+                                                <!-- Decorative Icon on right -->
+                                                <FontIcon Glyph="&#xE8D6;" FontSize="78" Opacity="0.08" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Foreground="{StaticResource MelodiumAccentBrush}" />
+
+                                                <StackPanel Margin="20,18" VerticalAlignment="Center" Spacing="6">
+                                                    <TextBlock Text="Pusťte se do objevování hudby" FontSize="18" FontWeight="Bold" Foreground="#FFFFFF" TextWrapping="Wrap" />
+                                                    <TextBlock Text="Trendy, žebříčky a nová hudba pro vás" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                                    <Button Click="OnHeroExploreClick" Style="{StaticResource GlassPillButtonStyle}" Margin="0,6,0,0">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <FontIcon Glyph="&#xE8A9;" FontSize="12" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                            <TextBlock Text="Prozkoumat" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+
+                                                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,0,14" Background="#18FFFFFF" BorderBrush="#14FFFFFF" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                                                    <TextBlock Text="🎶 MELODIUM" FontSize="9" FontWeight="SemiBold" Foreground="#B0B8C8" />
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Bottom Row: 2 Small Cards Side-by-Side (Witcher 3 + WhatsApp style) -->
+                                        <Grid Grid.Row="1" ColumnDefinitions="*, *" ColumnSpacing="12">
+                                            <!-- Left Small Card: Top Charts (Witcher 3 style) -->
+                                            <Button Grid.Column="0" Click="OnHeroChartsClick"
+                                                    Style="{StaticResource InteractiveTileCardButtonStyle}"
+                                                    BorderBrush="{StaticResource MelodiumCardBorderBrush}" BorderThickness="1">
+                                                <Grid CornerRadius="10">
+                                                    <Grid.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#2E1B32" Offset="0" />
+                                                            <GradientStop Color="#16121D" Offset="1" />
+                                                        </LinearGradientBrush>
+                                                    </Grid.Background>
+                                                    <FontIcon Glyph="&#xE9D9;" FontSize="26" Foreground="{StaticResource MelodiumAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,16" />
+                                                    <TextBlock Text="Top žebříčky 🎶" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" Margin="12,0,12,10" VerticalAlignment="Bottom" HorizontalAlignment="Left" />
+                                                </Grid>
+                                            </Button>
+
+                                            <!-- Right Small Card: Library (WhatsApp vibrant green style) -->
+                                            <Button Grid.Column="1" Click="OnHeroLibraryClick"
+                                                    Style="{StaticResource InteractiveTileCardButtonStyle}"
+                                                    BorderBrush="#3028C6D0" BorderThickness="1">
+                                                <Grid CornerRadius="10">
+                                                    <Grid.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                            <GradientStop Color="#11403C" Offset="0" />
+                                                            <GradientStop Color="#092024" Offset="1" />
+                                                        </LinearGradientBrush>
+                                                    </Grid.Background>
+                                                    <FontIcon Glyph="&#xEB52;" FontSize="26" Foreground="{StaticResource MelodiumAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,16" />
+                                                    <TextBlock Text="Vaše knihovna" FontWeight="SemiBold" FontSize="12" Foreground="#FFFFFF" Margin="12,0,12,10" VerticalAlignment="Bottom" HorizontalAlignment="Left" />
+                                                </Grid>
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- 2. QUICK MOOD PILLS (YouTube Music Style) -->
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.MoodFilters, Mode=OneWay}">
                                         <ItemsRepeater.Layout>
@@ -186,8 +527,8 @@
                                         </ItemsRepeater.Layout>
                                         <ItemsRepeater.ItemTemplate>
                                             <DataTemplate x:DataType="models:MoodFilterModel">
-                                                <Button Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnMoodFilterClick"
-                                                        CornerRadius="16" Padding="14,6" BorderThickness="1"
+                                                <Button Style="{StaticResource MoodChipButtonStyle}"
+                                                        Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnMoodFilterClick"
                                                         Background="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToChipBg}}"
                                                         BorderBrush="{x:Bind IsSelected, Mode=OneWay, Converter={StaticResource BoolToChipBorder}}">
                                                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -204,6 +545,135 @@
                                 </ScrollViewer>
 
                                 <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
+
+                                <!-- 3. TWO MICROSOFT STORE SIDE-BY-SIDE PANELS (Trending games & Trending apps) -->
+                                <Grid ColumnDefinitions="*, *" ColumnSpacing="16">
+                                    
+                                    <!-- Panel 1: "Populární skladby >" (Trending games counterpart) -->
+                                    <Border Grid.Column="0" CornerRadius="12"
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{StaticResource MelodiumCardBorderBrush}"
+                                            BorderThickness="1" Padding="16">
+                                        <StackPanel Spacing="14">
+                                            <!-- Panel Header -->
+                                            <Grid ColumnDefinitions="*, Auto">
+                                                <Button Grid.Column="0" Click="OnNavigateToExploreClick" Style="{StaticResource PlainTextLinkButtonStyle}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="Populární skladby" FontSize="18" FontWeight="Bold" />
+                                                        <FontIcon Glyph="&#xE76C;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="2,2,0,0" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                    <Button Click="OnTrendingSongsPrevClick" Style="{StaticResource SectionPaginationButtonStyle}" ToolTipService.ToolTip="Předchozí">
+                                                        <FontIcon Glyph="&#xE76B;" FontSize="11" />
+                                                    </Button>
+                                                    <Button Click="OnTrendingSongsNextClick" Style="{StaticResource SectionPaginationButtonStyle}" ToolTipService.ToolTip="Další">
+                                                        <FontIcon Glyph="&#xE76C;" FontSize="11" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- 6 items in 2 columns -->
+                                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}">
+                                                <ItemsRepeater.Layout>
+                                                    <UniformGridLayout MinItemWidth="220" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                                </ItemsRepeater.Layout>
+                                                <ItemsRepeater.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:SongModel">
+                                                        <Button Style="{StaticResource MediaCardButtonStyle}" Padding="6" CornerRadius="8" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
+                                                            <Button.ContextFlyout>
+                                                                <MenuFlyout>
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextStartMix, Mode=OneWay}" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
+                                                                    <MenuFlyoutSeparator />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextGoToArtist, Mode=OneWay}" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
+                                                                </MenuFlyout>
+                                                            </Button.ContextFlyout>
+                                                            <Grid ColumnDefinitions="48, *, Auto">
+                                                                <Border Grid.Column="0" CornerRadius="6">
+                                                                    <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="48" Height="48" />
+                                                                </Border>
+                                                                <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
+                                                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                    <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,2,0,0" />
+                                                                </StackPanel>
+                                                                <Border Grid.Column="2" Background="#1828C6D0" BorderBrush="#3528C6D0" BorderThickness="1" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                        <FontIcon Glyph="&#xE768;" FontSize="10" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                                        <TextBlock Text="Přehrát" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsRepeater.ItemTemplate>
+                                            </ItemsRepeater>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Panel 2: "Doporučené playlisty a alba >" (Trending apps counterpart) -->
+                                    <Border Grid.Column="1" CornerRadius="12"
+                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                            BorderBrush="{StaticResource MelodiumCardBorderBrush}"
+                                            BorderThickness="1" Padding="16">
+                                        <StackPanel Spacing="14">
+                                            <!-- Panel Header -->
+                                            <Grid ColumnDefinitions="*, Auto">
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                    <TextBlock Text="Doporučené výběry" FontSize="18" FontWeight="Bold" />
+                                                    <FontIcon Glyph="&#xE76C;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="2,2,0,0" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                    <Button Click="OnTrendingAlbumsPrevClick" Style="{StaticResource SectionPaginationButtonStyle}" ToolTipService.ToolTip="Předchozí">
+                                                        <FontIcon Glyph="&#xE76B;" FontSize="11" />
+                                                    </Button>
+                                                    <Button Click="OnTrendingAlbumsNextClick" Style="{StaticResource SectionPaginationButtonStyle}" ToolTipService.ToolTip="Další">
+                                                        <FontIcon Glyph="&#xE76C;" FontSize="11" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- 6 items in 2 columns -->
+                                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.TrendingAlbumsAndPlaylists, Mode=OneWay}">
+                                                <ItemsRepeater.Layout>
+                                                    <UniformGridLayout MinItemWidth="220" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                                </ItemsRepeater.Layout>
+                                                <ItemsRepeater.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:HomeItemModel">
+                                                        <Button Style="{StaticResource MediaCardButtonStyle}" Padding="6" CornerRadius="8" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnHomeItemClick">
+                                                            <Button.ContextFlyout>
+                                                                <MenuFlyout>
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" Tag="{x:Bind}" Click="OnHomeItemPlayClick" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemPlayNextClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToQueueClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToPlaylistClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                </MenuFlyout>
+                                                            </Button.ContextFlyout>
+                                                            <Grid ColumnDefinitions="48, *, Auto">
+                                                                <Border Grid.Column="0" CornerRadius="6">
+                                                                    <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="48" Height="48" />
+                                                                </Border>
+                                                                <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
+                                                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                    <TextBlock Text="{x:Bind Subtitle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,2,0,0" />
+                                                                </StackPanel>
+                                                                <Border Grid.Column="2" Background="#16FFFFFF" BorderBrush="#25FFFFFF" BorderThickness="1" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                        <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                                        <TextBlock Text="Otevřít" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsRepeater.ItemTemplate>
+                                            </ItemsRepeater>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
 
                                 <!-- Dynamic Home Sections (Poslechnout znovu, Rychlý výběr, Doporučené playlisty, atd.) -->
                                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.HomeSections, Mode=OneWay}"
@@ -250,9 +720,9 @@
                                                                     <Button.ContextFlyout>
                                                                         <MenuFlyout>
                                                                             <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" Tag="{x:Bind}" Click="OnHomeItemPlayClick" />
-                                                                            <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemPlayNextClick" Visibility="{x:Bind IsSong, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                                                            <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToQueueClick" Visibility="{x:Bind IsSong, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                                                            <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToPlaylistClick" Visibility="{x:Bind IsSong, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                                                                            <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemPlayNextClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                            <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToQueueClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                            <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToPlaylistClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
                                                                         </MenuFlyout>
 
                                                                     </Button.ContextFlyout>
@@ -271,7 +741,9 @@
                                                                             <Border HorizontalAlignment="Left"
                                                                                     VerticalAlignment="Bottom"
                                                                                     Margin="6"
-                                                                                    Background="#CC18181C"
+                                                                                    Background="#D512141C"
+                                                                                    BorderBrush="#1CFFFFFF"
+                                                                                    BorderThickness="1"
                                                                                     CornerRadius="6"
                                                                                     Padding="6,3">
                                                                                 <StackPanel Orientation="Horizontal" Spacing="4">
@@ -610,7 +1082,7 @@
                                                             </Border>
                                                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                                                 <TextBlock Text="{x:Bind Name}" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                                <TextBlock Text="{x:Bind Subscribers}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Visibility="{x:Bind Subscribers, Mode=OneWay, Converter={StaticResource NullToVis}}" />
+                                                                <TextBlock Text="{x:Bind Subscribers}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Visibility="{x:Bind Subscribers, Converter={StaticResource NullToVis}}" />
                                                             </StackPanel>
                                                         </Grid>
                                                     </Button>

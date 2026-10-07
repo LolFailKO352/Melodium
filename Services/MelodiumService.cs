@@ -199,6 +199,117 @@ namespace Melodium.Services
             return (null, null, null);
         }
 
+        public async Task<List<SongModel>> GetAccountHistoryAsync()
+        {
+            await EnsureInitializedAsync();
+            var songs = new List<SongModel>();
+
+            try
+            {
+                var body = new { context = CreateInnertubeContext(), browseId = "FEmusic_history" };
+                var root = await PostInnertubeAsync("browse", body);
+                if (root == null) return songs;
+
+                var sectionNodes = root?["contents"]?["singleColumnBrowseResultsRenderer"]?["tabs"]?[0]?["tabRenderer"]?["content"]?["sectionListRenderer"]?["contents"]?.AsArray();
+                if (sectionNodes != null)
+                {
+                    foreach (var sec in sectionNodes)
+                    {
+                        var shelf = sec?["musicShelfRenderer"];
+                        var items = shelf?["contents"]?.AsArray();
+                        if (items == null)
+                        {
+                            var carousel = sec?["musicCarouselShelfRenderer"];
+                            items = carousel?["contents"]?.AsArray();
+                        }
+
+                        if (items == null) continue;
+
+                        foreach (var itm in items)
+                        {
+                            var r = itm?["musicResponsiveListItemRenderer"];
+                            if (r == null) continue;
+
+                            string? videoId = r?["playlistItemData"]?["videoId"]?.ToString()
+                                           ?? r?["navigationEndpoint"]?["watchEndpoint"]?["videoId"]?.ToString()
+                                           ?? r?["overlay"]?["musicItemThumbnailOverlayRenderer"]?["content"]?["musicPlayButtonRenderer"]?["playNavigationEndpoint"]?["watchEndpoint"]?["videoId"]?.ToString();
+
+                            if (string.IsNullOrEmpty(videoId)) continue;
+
+                            var thumbs = r?["thumbnail"]?["musicThumbnailRenderer"]?["thumbnail"]?["thumbnails"]?.AsArray();
+                            string? thumbUrl = thumbs?.LastOrDefault()?["url"]?.ToString() ?? thumbs?.FirstOrDefault()?["url"]?.ToString();
+
+                            var flex = r?["flexColumns"]?.AsArray();
+                            string title = "Neznámá skladba";
+                            string artist = "Neznámý interpret";
+                            string? artistId = null;
+
+                            if (flex != null && flex.Count > 0)
+                            {
+                                var titleRuns = flex[0]?["musicResponsiveListItemFlexColumnRenderer"]?["text"]?["runs"]?.AsArray();
+                                if (titleRuns != null && titleRuns.Count > 0)
+                                {
+                                    title = string.Join("", titleRuns.Select(x => x?["text"]?.ToString()));
+                                }
+
+                                if (flex.Count > 1)
+                                {
+                                    var col1Runs = flex[1]?["musicResponsiveListItemFlexColumnRenderer"]?["text"]?["runs"]?.AsArray();
+                                    if (col1Runs != null && col1Runs.Count > 0)
+                                    {
+                                        var artistList = new List<string>();
+                                        foreach (var run in col1Runs)
+                                        {
+                                            var text = run?["text"]?.ToString();
+                                            if (string.IsNullOrWhiteSpace(text) || text == "•" || text == " • " || text == ", " || text.Trim() == "a") continue;
+
+                                            var nav = run?["navigationEndpoint"]?["browseEndpoint"];
+                                            var pageType = nav?["browseEndpointContextSupportedConfigs"]?["browseEndpointContextMusicConfig"]?["pageType"]?.ToString();
+                                            var browseId = nav?["browseId"]?.ToString();
+
+                                            if (pageType == "MUSIC_PAGE_TYPE_ARTIST" || (browseId != null && browseId.StartsWith("UC")))
+                                            {
+                                                artistList.Add(text);
+                                                if (artistId == null) artistId = browseId;
+                                            }
+                                        }
+
+                                        if (artistList.Count > 0)
+                                        {
+                                            artist = string.Join(", ", artistList);
+                                        }
+                                        else
+                                        {
+                                            var first = col1Runs.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x?["text"]?.ToString()) && x?["text"]?.ToString() != "•");
+                                            if (first != null) artist = first["text"]!.ToString();
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (!songs.Any(s => s.VideoId == videoId))
+                            {
+                                songs.Add(new SongModel
+                                {
+                                    VideoId = videoId,
+                                    Title = title,
+                                    Artist = artist,
+                                    ArtistId = artistId,
+                                    ThumbnailUrl = thumbUrl
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Chyba při stahování historie účtu: {ex.Message}");
+            }
+
+            return songs;
+        }
+
         private bool _isGeneratingPoToken = false;
 
         public Task EnsureInitializedAsync()

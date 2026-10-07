@@ -10,6 +10,7 @@ using Melodium.Models;
 using Melodium.Services;
 using System.Globalization;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Melodium.ViewModels;
 
@@ -107,7 +108,7 @@ public partial class MainViewModel : ObservableObject
     // --- Aktualizace aplikace ---
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AppVersionDisplay))]
-    public partial string CurrentAppVersion { get; set; } = "1.6";
+    public partial string CurrentAppVersion { get; set; } = "1.7.0";
 
     public string AppVersionDisplay => $"Version {CurrentAppVersion} (Windows App SDK)";
 
@@ -153,6 +154,8 @@ public partial class MainViewModel : ObservableObject
     
     [ObservableProperty] public partial string TextSearchPlaceholder { get; set; } = "Search songs, artists, albums...";
     [ObservableProperty] public partial string TextLanguageDescription { get; set; } = "Select your preferred language. All world languages are supported.";
+    [ObservableProperty] public partial string TextResumeFromOtherDevice { get; set; } = "Resume from another device";
+    [ObservableProperty] public partial string TextResumeAction { get; set; } = "Resume";
     [ObservableProperty] public partial string TextHeroSubtitle { get; set; } = "Listen to music without limits and without ads";
     [ObservableProperty] public partial string TextStartListening { get; set; } = "Start listening";
     [ObservableProperty] public partial string TextRecommendedMusic { get; set; } = "Recommended music >";
@@ -616,6 +619,31 @@ public partial class MainViewModel : ObservableObject
     public partial bool HasHomeSections { get; set; }
 
     public ObservableCollection<SongModel> HomeRecommendations { get; } = new();
+
+    // --- Microsoft Store Style Hero Spotlight & Trending ---
+    public ObservableCollection<SongModel> HeroSpotlightItems { get; } = new();
+
+    [ObservableProperty]
+    public partial int HeroSpotlightIndex { get; set; } = 0;
+
+    [ObservableProperty]
+    public partial SongModel? FeaturedSpotlightSong { get; set; }
+
+    [ObservableProperty]
+    public partial string FeaturedSpotlightTitle { get; set; } = "Melodium Mix";
+
+    [ObservableProperty]
+    public partial string FeaturedSpotlightSubtitle { get; set; } = "Poslouchejte své oblíbené skladby a playlisty bez omezení";
+
+    [ObservableProperty]
+    public partial string? FeaturedSpotlightThumbnail { get; set; }
+
+    public ObservableCollection<SongModel> TrendingSongs { get; } = new();
+    private int _trendingSongsOffset = 0;
+
+    public ObservableCollection<HomeItemModel> TrendingAlbumsAndPlaylists { get; } = new();
+    private int _trendingAlbumsOffset = 0;
+
     public ObservableCollection<SongModel> LikedSongs { get; } = new();
 
     [ObservableProperty]
@@ -700,6 +728,19 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<LyricLineModel> LyricsLines { get; } = new();
 
     public event Action<LyricLineModel>? ActiveLyricChanged;
+
+    // --- Stav obnovené relace & Resume z jiného zařízení ---
+    private bool _isRestoredSessionPending;
+    private double _restoredPositionSeconds;
+
+    [ObservableProperty]
+    public partial bool HasCrossDeviceResumeSong { get; set; }
+
+    [ObservableProperty]
+    public partial SongModel? CrossDeviceResumeSong { get; set; }
+
+    [ObservableProperty]
+    public partial string CrossDeviceResumeDescription { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial SongModel? SelectedQueueSong { get; set; }
@@ -880,6 +921,9 @@ public partial class MainViewModel : ObservableObject
                         ?? Languages.FirstOrDefault();
 
         InitializeMoodFilters();
+
+        // Obnovení minulé relace přehrávání (poslední poslouchaná skladba a fronta)
+        RestorePlaybackSession();
 
         // Načteme uložené přihlášení a knihovnu při startu
         _ = Task.Run(LoadSavedSessionAsync);
@@ -1777,13 +1821,21 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void PlayPause()
+    private async Task PlayPauseAsync()
     {
         if (CurrentSong == null) return;
+
+        if (_isRestoredSessionPending)
+        {
+            _isRestoredSessionPending = false;
+            await PlayQueueCurrentSongAsync(seekToSeconds: _restoredPositionSeconds);
+            return;
+        }
 
         if (IsPlaying)
         {
             _audioService.Pause();
+            SavePlaybackSession();
         }
         else
         {
@@ -1932,9 +1984,11 @@ public partial class MainViewModel : ObservableObject
         }, ct);
     }
 
-    private async Task PlayQueueCurrentSongAsync()
+    private async Task PlayQueueCurrentSongAsync(double seekToSeconds = 0)
     {
         if (CurrentQueueIndex < 0 || CurrentQueueIndex >= PlaybackQueue.Count) return;
+
+        _isRestoredSessionPending = false;
 
         // Stop current playback
         _audioService.Stop();
@@ -1952,9 +2006,9 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = $"Příprava: {song.Title}...";
 
         // Reset position display
-        PositionSeconds = 0;
+        PositionSeconds = seekToSeconds > 0 ? seekToSeconds : 0;
         DurationSeconds = 0;
-        PositionText = "0:00";
+        PositionText = seekToSeconds > 0 ? TimeSpan.FromSeconds(seekToSeconds).ToString(@"m\:ss") : "0:00";
         DurationText = "0:00";
 
         // Reset or reload lyrics
@@ -1980,6 +2034,15 @@ public partial class MainViewModel : ObservableObject
                 {
                     MainThread.BeginInvokeOnMainThread(() => StatusMessage = $"{song.Title} — {msg}");
                 });
+
+                if (seekToSeconds > 0)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(350);
+                        MainThread.BeginInvokeOnMainThread(() => SeekTo(TimeSpan.FromSeconds(seekToSeconds)));
+                    });
+                }
 
                 TriggerPrefetchNextSong();
                 return;
@@ -2007,6 +2070,15 @@ public partial class MainViewModel : ObservableObject
                         StatusMessage = $"{song.Title} — {msg}";
                     });
                 }, videoId: song.VideoId);
+
+                if (seekToSeconds > 0)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(400);
+                        MainThread.BeginInvokeOnMainThread(() => SeekTo(TimeSpan.FromSeconds(seekToSeconds)));
+                    });
+                }
 
                 VmLog("PlayFromUrlAsync returned (přehrávání spuštěno).");
 
@@ -2225,9 +2297,10 @@ public partial class MainViewModel : ObservableObject
                     UserProfileName = "Můj účet";
                     StatusMessage = "Relace obnovena.";
 
-                    // Spustit domovskou stránku i knihovnu paralelně pro bleskový start
+                    // Spustit domovskou stránku, knihovnu i synchronizaci relace paralelně
                     _ = Task.Run(LoadHomeRecommendationsAsync);
                     _ = Task.Run(LoadLibraryAsync);
+                    _ = Task.Run(CheckCrossDeviceResumeAsync);
                     return;
                 }
             }
@@ -2256,11 +2329,134 @@ public partial class MainViewModel : ObservableObject
             
             _ = Task.Run(LoadHomeRecommendationsAsync);
             _ = Task.Run(LoadLibraryAsync);
+            _ = Task.Run(CheckCrossDeviceResumeAsync);
         }
         catch (Exception ex)
         {
             StatusMessage = $"Chyba při ukládání přihlášení: {ex.Message}";
         }
+    }
+
+    public void SavePlaybackSession()
+    {
+        try
+        {
+            if (CurrentSong == null && PlaybackQueue.Count == 0) return;
+
+            var session = new PlaybackSessionModel
+            {
+                CurrentSong = CurrentSong,
+                PositionSeconds = PositionSeconds,
+                DurationSeconds = DurationSeconds,
+                Queue = PlaybackQueue.ToList(),
+                QueueIndex = CurrentQueueIndex,
+                SavedAt = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(session);
+            Preferences.Default.Set("LastPlaybackSession", json);
+            VmLog($"[Session] Uložena relace: {session.CurrentSong?.Title} ({session.PositionSeconds:F1}s, {session.Queue.Count} skladeb ve frontě)");
+        }
+        catch (Exception ex)
+        {
+            VmLog($"[Session] Chyba při ukládání relace: {ex.Message}");
+        }
+    }
+
+    public void RestorePlaybackSession()
+    {
+        try
+        {
+            var json = Preferences.Default.Get<string?>("LastPlaybackSession", null);
+            if (string.IsNullOrWhiteSpace(json)) return;
+
+            var session = JsonSerializer.Deserialize<PlaybackSessionModel>(json);
+            if (session == null || (session.CurrentSong == null && (session.Queue == null || session.Queue.Count == 0))) return;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                PlaybackQueue.Clear();
+                _originalQueue.Clear();
+                if (session.Queue != null)
+                {
+                    foreach (var s in session.Queue)
+                    {
+                        PlaybackQueue.Add(s);
+                        _originalQueue.Add(s);
+                    }
+                }
+
+                CurrentQueueIndex = session.QueueIndex >= 0 && session.QueueIndex < PlaybackQueue.Count
+                    ? session.QueueIndex
+                    : (PlaybackQueue.Count > 0 ? 0 : -1);
+
+                CurrentSong = session.CurrentSong;
+                SelectedQueueSong = session.CurrentSong;
+                if (session.CurrentSong != null)
+                {
+                    IsCurrentSongLiked = session.CurrentSong.IsLiked;
+                }
+
+                PositionSeconds = session.PositionSeconds;
+                DurationSeconds = session.DurationSeconds;
+                PositionText = TimeSpan.FromSeconds(session.PositionSeconds).ToString(@"m\:ss");
+                DurationText = session.DurationSeconds > 0 ? TimeSpan.FromSeconds(session.DurationSeconds).ToString(@"m\:ss") : "0:00";
+
+                _isRestoredSessionPending = true;
+                _restoredPositionSeconds = session.PositionSeconds;
+                StatusMessage = $"Předchozí relace načtena: {session.CurrentSong?.Title}";
+                VmLog($"[Session] Obnovena relace přehrávače: {session.CurrentSong?.Title} na pozici {session.PositionSeconds:F1}s");
+            });
+        }
+        catch (Exception ex)
+        {
+            VmLog($"[Session] Chyba při obnovení relace: {ex.Message}");
+        }
+    }
+
+    public async Task CheckCrossDeviceResumeAsync()
+    {
+        try
+        {
+            if (!IsLoggedIn) return;
+
+            var history = await _ytService.GetAccountHistoryAsync();
+            if (history == null || history.Count == 0) return;
+
+            var latest = history[0];
+            if (latest == null || string.IsNullOrWhiteSpace(latest.VideoId)) return;
+
+            // Pokud aktuálně přehrávaná nebo obnovená skladba je přesně tato, nenabízet
+            if (CurrentSong != null && CurrentSong.VideoId == latest.VideoId) return;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CrossDeviceResumeSong = latest;
+                CrossDeviceResumeDescription = $"{latest.Title} • {latest.Artist}";
+                HasCrossDeviceResumeSong = true;
+                VmLog($"[CrossDeviceResume] Nalezena skladba z jiného zařízení: {latest.Title}");
+            });
+        }
+        catch (Exception ex)
+        {
+            VmLog($"[CrossDeviceResume] Chyba: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ResumeCrossDeviceSongAsync()
+    {
+        if (CrossDeviceResumeSong == null) return;
+        var song = CrossDeviceResumeSong;
+        HasCrossDeviceResumeSong = false;
+        _isRestoredSessionPending = false;
+        await PlaySongAsync(song);
+    }
+
+    [RelayCommand]
+    public void DismissCrossDeviceResume()
+    {
+        HasCrossDeviceResumeSong = false;
     }
 
     public async Task LoadHomeRecommendationsAsync()
@@ -2325,12 +2521,151 @@ public partial class MainViewModel : ObservableObject
                 {
                     foreach (var h in homeSongs) HomeRecommendations.Add(h);
                 }
+
+                RefreshSpotlightAndTrending();
             });
         }
         catch (Exception ex)
         {
             StatusMessage = $"Chyba při stahování doporučení: {ex.Message}";
         }
+    }
+
+    [RelayCommand]
+    public void NextHeroSpotlight()
+    {
+        if (HeroSpotlightItems.Count == 0) return;
+        HeroSpotlightIndex = (HeroSpotlightIndex + 1) % HeroSpotlightItems.Count;
+        UpdateFeaturedSpotlight();
+    }
+
+    [RelayCommand]
+    public void PreviousHeroSpotlight()
+    {
+        if (HeroSpotlightItems.Count == 0) return;
+        HeroSpotlightIndex = (HeroSpotlightIndex - 1 + HeroSpotlightItems.Count) % HeroSpotlightItems.Count;
+        UpdateFeaturedSpotlight();
+    }
+
+    public void SelectHeroSpotlight(int index)
+    {
+        if (index >= 0 && index < HeroSpotlightItems.Count)
+        {
+            HeroSpotlightIndex = index;
+            UpdateFeaturedSpotlight();
+        }
+    }
+
+    private void UpdateFeaturedSpotlight()
+    {
+        if (HeroSpotlightItems.Count > 0 && HeroSpotlightIndex >= 0 && HeroSpotlightIndex < HeroSpotlightItems.Count)
+        {
+            FeaturedSpotlightSong = HeroSpotlightItems[HeroSpotlightIndex];
+            FeaturedSpotlightTitle = FeaturedSpotlightSong.Title;
+            FeaturedSpotlightSubtitle = $"{FeaturedSpotlightSong.Artist} • Doporučeno pro vás";
+            FeaturedSpotlightThumbnail = FeaturedSpotlightSong.ThumbnailUrl;
+        }
+        else
+        {
+            FeaturedSpotlightTitle = "Melodium Mix";
+            FeaturedSpotlightSubtitle = "Poslouchejte své oblíbené skladby bez reklam a omezení";
+            FeaturedSpotlightThumbnail = null;
+        }
+    }
+
+    [RelayCommand]
+    public async Task PlayFeaturedSpotlightAsync()
+    {
+        if (FeaturedSpotlightSong != null)
+        {
+            await PlaySongAsync(FeaturedSpotlightSong);
+        }
+        else if (HomeRecommendations.Count > 0)
+        {
+            await PlaySongAsync(HomeRecommendations[0]);
+        }
+        else if (ExploreCharts.Count > 0)
+        {
+            await PlayAllExploreChartsAsync();
+        }
+    }
+
+    [RelayCommand]
+    public void NextTrendingSongs()
+    {
+        if (HomeRecommendations.Count <= 6) return;
+        _trendingSongsOffset = (_trendingSongsOffset + 6) % HomeRecommendations.Count;
+        RefreshTrendingSongs();
+    }
+
+    [RelayCommand]
+    public void PreviousTrendingSongs()
+    {
+        if (HomeRecommendations.Count <= 6) return;
+        _trendingSongsOffset = (_trendingSongsOffset - 6 + HomeRecommendations.Count) % HomeRecommendations.Count;
+        RefreshTrendingSongs();
+    }
+
+    public void RefreshTrendingSongs()
+    {
+        TrendingSongs.Clear();
+        if (HomeRecommendations.Count == 0) return;
+        var count = Math.Min(6, HomeRecommendations.Count);
+        for (int i = 0; i < count; i++)
+        {
+            int idx = (_trendingSongsOffset + i) % HomeRecommendations.Count;
+            TrendingSongs.Add(HomeRecommendations[idx]);
+        }
+    }
+
+    [RelayCommand]
+    public void NextTrendingAlbums()
+    {
+        var allItems = HomeSections.SelectMany(s => s.Items).Where(i => i.IsPlaylist || i.IsAlbum).ToList();
+        if (allItems.Count <= 6) return;
+        _trendingAlbumsOffset = (_trendingAlbumsOffset + 6) % allItems.Count;
+        RefreshTrendingAlbums(allItems);
+    }
+
+    [RelayCommand]
+    public void PreviousTrendingAlbums()
+    {
+        var allItems = HomeSections.SelectMany(s => s.Items).Where(i => i.IsPlaylist || i.IsAlbum).ToList();
+        if (allItems.Count <= 6) return;
+        _trendingAlbumsOffset = (_trendingAlbumsOffset - 6 + allItems.Count) % allItems.Count;
+        RefreshTrendingAlbums(allItems);
+    }
+
+    public void RefreshTrendingAlbums(List<HomeItemModel>? allItems = null)
+    {
+        TrendingAlbumsAndPlaylists.Clear();
+        allItems ??= HomeSections.SelectMany(s => s.Items).Where(i => i.IsPlaylist || i.IsAlbum).ToList();
+        if (allItems.Count == 0)
+        {
+            allItems = HomeSections.SelectMany(s => s.Items).ToList();
+        }
+        if (allItems.Count == 0) return;
+        var count = Math.Min(6, allItems.Count);
+        for (int i = 0; i < count; i++)
+        {
+            int idx = (_trendingAlbumsOffset + i) % allItems.Count;
+            TrendingAlbumsAndPlaylists.Add(allItems[idx]);
+        }
+    }
+
+    public void RefreshSpotlightAndTrending()
+    {
+        HeroSpotlightItems.Clear();
+        foreach (var s in HomeRecommendations.Take(5))
+        {
+            HeroSpotlightItems.Add(s);
+        }
+        HeroSpotlightIndex = 0;
+        UpdateFeaturedSpotlight();
+        _trendingSongsOffset = 0;
+        RefreshTrendingSongs();
+        _trendingAlbumsOffset = 0;
+        RefreshTrendingAlbums();
     }
 
     public async Task LoadLibraryAsync()
@@ -2881,6 +3216,7 @@ public partial class MainViewModel : ObservableObject
                             HomeRecommendations.Add(item.Song!);
                         }
                     }
+                    RefreshSpotlightAndTrending();
                 });
                 StatusMessage = $"Nálada '{mood}' načtena 🎶.";
             }

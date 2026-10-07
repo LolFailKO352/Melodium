@@ -25,10 +25,10 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
             while ($parts.Length -lt 4) { $parts += "0" }
             $Version = ($parts[0..3] -join '.')
         } else {
-            $Version = "1.6.0.0"
+            $Version = "1.7.0.0"
         }
     } catch {
-        $Version = "1.6.0.0"
+        $Version = "1.7.0.0"
     }
 }
 

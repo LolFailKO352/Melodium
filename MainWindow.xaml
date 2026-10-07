@@ -18,30 +18,9 @@
             ToolTipText="Melodium"
             IconSource="Resources/Raw/trayicon.ico"
             MenuActivation="RightClick"
-            ContextMenuMode="SecondWindow"
+            ContextMenuMode="PopupMenu"
             DoubleClickCommand="{x:Bind ToggleWindowVisibilityCommand}"
-            LeftClickCommand="{x:Bind ToggleWindowVisibilityCommand}">
-            <tb:TaskbarIcon.ContextFlyout>
-                <MenuFlyout>
-                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayPause, Mode=OneWay}" Click="OnTrayPlayPauseClick">
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE768;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextShowHideWindow, Mode=OneWay}" Click="OnTrayShowHideClick">
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE737;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                    <MenuFlyoutSeparator />
-                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextExitButton, Mode=OneWay}" Click="OnTrayExitClick">
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE711;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                </MenuFlyout>
-            </tb:TaskbarIcon.ContextFlyout>
-        </tb:TaskbarIcon>
+            LeftClickCommand="{x:Bind ToggleWindowVisibilityCommand}" />
 
         <views:MainView x:Name="MainContent" />
     </Grid>

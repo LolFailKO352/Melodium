@@ -76,6 +76,7 @@ public partial class App : Application
 
         void CleanupAndExit()
         {
+            try { Services?.GetService<MainViewModel>()?.SavePlaybackSession(); } catch { }
             try { (Services?.GetService<IAudioService>() as IDisposable)?.Dispose(); } catch { }
             try { Services?.GetService<DiscordRpcService>()?.Dispose(); } catch { }
             try { MainWindow?.DisposeTrayIcon(); } catch { }

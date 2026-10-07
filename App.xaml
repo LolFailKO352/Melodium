@@ -20,6 +20,7 @@
             <converters:BoolToDoubleConverter x:Key="BoolToLyricFontSize" TrueValue="20.0" FalseValue="16.0" />
             <converters:BoolToVector3Converter x:Key="BoolToLyricScale" TrueScale="1.04" FalseScale="1.0" />
             <converters:BoolToThicknessConverter x:Key="BoolToLyricBorderThick" TrueValue="1.0" FalseValue="0.0" />
+            <converters:StringToImageSourceConverter x:Key="StringToImageSource" />
 
             <SolidColorBrush x:Key="MelodiumAccentBrush" Color="#28C6D0" />
             <SolidColorBrush x:Key="MelodiumCardBorderBrush" Color="#2D2F3C" />

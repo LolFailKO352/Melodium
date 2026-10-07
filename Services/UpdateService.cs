@@ -73,7 +73,7 @@ public class UpdateService
             if (parsed != null) return parsed;
         }
 
-        return new Version(1, 6, 0, 0);
+        return new Version(1, 7, 0, 0);
     }
 
     public static string GetCurrentVersionDisplay()
