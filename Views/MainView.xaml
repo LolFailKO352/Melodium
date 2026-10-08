@@ -306,9 +306,24 @@
                                         Visibility="{x:Bind ViewModel.IsUpdateDownloading, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}" />
                             </InfoBar.ActionButton>
                             <InfoBar.Content>
-                                <StackPanel Spacing="6" Margin="0,8,0,0" Visibility="{x:Bind ViewModel.IsUpdateDownloading, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                                    <ProgressBar Value="{x:Bind ViewModel.UpdateDownloadProgress, Mode=OneWay}" Maximum="100" Height="4" CornerRadius="2" />
-                                    <TextBlock Text="{x:Bind ViewModel.UpdateDownloadProgressText, Mode=OneWay}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <StackPanel Spacing="8" Margin="0,6,0,0">
+                                    <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.IsUpdateDownloading, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                                        <ProgressBar Value="{x:Bind ViewModel.UpdateDownloadProgress, Mode=OneWay}" Maximum="100" Height="4" CornerRadius="2" />
+                                        <TextBlock Text="{x:Bind ViewModel.UpdateDownloadProgressText, Mode=OneWay}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- Scrollable release notes / changelog inside the notification -->
+                                    <Border Visibility="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay, Converter={StaticResource NullToVis}}"
+                                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                            CornerRadius="6"
+                                            Padding="10,8">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{x:Bind ViewModel.TextChangelogLabel, Mode=OneWay}" FontWeight="SemiBold" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <TextBlock Text="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay}" FontSize="11" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,0,4,0" />
+                                            </ScrollViewer>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </InfoBar.Content>
                         </InfoBar>
@@ -1545,7 +1560,9 @@
                                                         Visibility="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay, Converter={StaticResource NullToVis}}">
                                                     <StackPanel Spacing="6">
                                                         <TextBlock Text="{x:Bind ViewModel.TextChangelogLabel, Mode=OneWay}" FontWeight="SemiBold" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                        <TextBlock Text="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay}" FontSize="12" TextWrapping="Wrap" MaxHeight="140" />
+                                                        <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                            <TextBlock Text="{x:Bind ViewModel.UpdateReleaseNotes, Mode=OneWay}" FontSize="12" TextWrapping="Wrap" IsTextSelectionEnabled="True" Margin="0,0,6,0" />
+                                                        </ScrollViewer>
                                                     </StackPanel>
                                                 </Border>
 
