@@ -2,6 +2,9 @@
 
 A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3** and the **Windows App SDK** (.NET 10). This application brings the best of YouTube Music straight to your Windows desktop with native performance, fluent UI design, personalized recommendation algorithms, and deep system integration.
 
+Download link for .NET Runtime:
+https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-10.0.13-windows-x64-installer
+
 ## ✨ Features
 
 - **🎵 Native Playback**: Smooth, high-performance background music playback using native Windows Media Foundation audio APIs.
