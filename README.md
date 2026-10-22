@@ -2,9 +2,6 @@
 
 A modern, fast, and unofficial YouTube Music desktop client built on **WinUI 3** and the **Windows App SDK** (.NET 10). This application brings the best of YouTube Music straight to your Windows desktop with native performance, fluent UI design, personalized recommendation algorithms, and deep system integration.
 
-Download link for .NET Runtime:
-https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-10.0.13-windows-x64-installer
-
 ## ✨ Features
 
 - **🎵 Native Playback**: Smooth, high-performance background music playback using native Windows Media Foundation audio APIs.
@@ -46,6 +43,13 @@ The application uses a secure built-in browser window (WebView) to allow you to 
 
 ## 🤝 Contributing
 Suggestions for improvements, bug reports, or pull requests are welcome! Check out the [Issues](https://github.com/your_name/Melodium/issues) tab.
+
+## ⬇️ Requirements
+.NET 10 Runtime
+https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-10.0.13-windows-x64-installer
+
+MS Edge WebView2 (if you are not a tech-savvy person, you should already have it)
+https://developer.microsoft.com/cs-cz/microsoft-edge/webview2?form=MA13LH&cs=3715420047#download
 
 ## 📄 License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
