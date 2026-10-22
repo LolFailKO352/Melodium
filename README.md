@@ -42,7 +42,7 @@ The application uses a secure built-in browser window (WebView) to allow you to 
   - Custom Melodium YouTube Music API integration
 
 ## 🤝 Contributing
-Suggestions for improvements, bug reports, or pull requests are welcome! Check out the [Issues](https://github.com/your_name/Melodium/issues) tab.
+Suggestions for improvements, bug reports, or pull requests are welcome! Check out the [Issues](https://github.com/LolFailKO352/Melodium/issues) tab.
 
 ## ⬇️ Requirements
 .NET 10 Runtime
