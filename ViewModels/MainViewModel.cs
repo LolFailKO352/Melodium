@@ -483,7 +483,18 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnCurrentSongChanged(SongModel? value)
     {
-        _discordRpcService?.UpdatePlaybackState(value, IsPlaying);
+        if (_isRestoringSession)
+        {
+            UpdateQueuePlayingStates();
+            return;
+        }
+
+        _lastReportedDurationSeconds = 0;
+        PositionSeconds = 0;
+        DurationSeconds = 0;
+        double dur = DiscordRpcService.ParseDurationToSeconds(value?.Duration);
+        _discordRpcService?.UpdatePlaybackState(value, IsPlaying, 0, dur);
+        UpdateQueuePlayingStates();
     }
 
     public bool IsCurrentSongNotNull => CurrentSong != null;
@@ -507,7 +518,19 @@ public partial class MainViewModel : ObservableObject
     partial void OnIsPlayingChanged(bool value)
     {
         PlayPauseIcon = value ? "⏸" : "▶";
-        _discordRpcService?.UpdatePlaybackState(CurrentSong, value);
+        _discordRpcService?.UpdatePlaybackState(CurrentSong, value, PositionSeconds, DurationSeconds);
+        UpdateQueuePlayingStates();
+    }
+
+    public void UpdateQueuePlayingStates()
+    {
+        if (PlaybackQueue == null) return;
+        foreach (var song in PlaybackQueue)
+        {
+            bool isCurrent = CurrentSong != null && song.VideoId == CurrentSong.VideoId;
+            song.IsCurrent = isCurrent;
+            song.IsCurrentlyPlaying = isCurrent && IsPlaying;
+        }
     }
 
     [ObservableProperty]
@@ -731,6 +754,7 @@ public partial class MainViewModel : ObservableObject
 
     // --- Stav obnovené relace & Resume z jiného zařízení ---
     private bool _isRestoredSessionPending;
+    private bool _isRestoringSession;
     private double _restoredPositionSeconds;
 
     [ObservableProperty]
@@ -890,6 +914,12 @@ public partial class MainViewModel : ObservableObject
 
         CurrentAppVersion = UpdateService.GetCurrentVersionDisplay();
 
+        InitializeMoodFilters();
+
+        // 1. Obnovení minulé relace přehrávání (poslední poslouchaná skladba a fronta)
+        RestorePlaybackSession();
+
+        // 2. Inicializace Discord RPC se znalostí již obnovené relace
         IsDiscordRpcEnabled = Preferences.Default.Get("IsDiscordRpcEnabled", false);
         IsCloseToTrayEnabled = Preferences.Default.Get("IsCloseToTrayEnabled", false);
         _discordRpcService.HandleSettingsChanged();
@@ -920,11 +950,6 @@ public partial class MainViewModel : ObservableObject
                         ?? Languages.FirstOrDefault(c => c.TwoLetterISOLanguageName == "en")
                         ?? Languages.FirstOrDefault();
 
-        InitializeMoodFilters();
-
-        // Obnovení minulé relace přehrávání (poslední poslouchaná skladba a fronta)
-        RestorePlaybackSession();
-
         // Načteme uložené přihlášení a knihovnu při startu
         _ = Task.Run(LoadSavedSessionAsync);
 
@@ -946,6 +971,8 @@ public partial class MainViewModel : ObservableObject
         MoodFilters.Add(new() { Title = "Hip-Hop", Icon = "🎧", IsSelected = false });
     }
 
+    private double _lastReportedDurationSeconds = 0;
+
     private void OnAudioPositionChanged(TimeSpan position, TimeSpan duration)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -958,6 +985,13 @@ public partial class MainViewModel : ObservableObject
             if (IsKaraokeMode && IsSyncedLyrics && LyricsLines.Count > 0)
             {
                 UpdateActiveLyricLine(position);
+            }
+
+            // Synchronizovat s Discord RPC, jakmile audio přehrávač zjistí délku skladby
+            if (duration.TotalSeconds > 0 && Math.Abs(_lastReportedDurationSeconds - duration.TotalSeconds) > 1.0)
+            {
+                _lastReportedDurationSeconds = duration.TotalSeconds;
+                _discordRpcService?.UpdatePlaybackState(CurrentSong, IsPlaying, position.TotalSeconds, duration.TotalSeconds);
             }
         });
     }
@@ -1084,6 +1118,7 @@ public partial class MainViewModel : ObservableObject
         MainThread.BeginInvokeOnMainThread(() =>
         {
             IsPlaying = playing;
+            _discordRpcService?.UpdatePlaybackState(CurrentSong, playing, PositionSeconds, DurationSeconds);
         });
     }
 
@@ -2127,6 +2162,7 @@ public partial class MainViewModel : ObservableObject
     public void SeekTo(TimeSpan position)
     {
         _audioService.SeekTo(position);
+        _discordRpcService?.UpdatePlaybackState(CurrentSong, IsPlaying, position.TotalSeconds, DurationSeconds);
     }
 
     [RelayCommand]
@@ -2346,7 +2382,7 @@ public partial class MainViewModel : ObservableObject
             var session = new PlaybackSessionModel
             {
                 CurrentSong = CurrentSong,
-                PositionSeconds = PositionSeconds,
+                PositionSeconds = 0, // Uchovává se pouze poslední skladba, nikoli pozice ve skladbě
                 DurationSeconds = DurationSeconds,
                 Queue = PlaybackQueue.ToList(),
                 QueueIndex = CurrentQueueIndex,
@@ -2355,7 +2391,7 @@ public partial class MainViewModel : ObservableObject
 
             var json = JsonSerializer.Serialize(session);
             Preferences.Default.Set("LastPlaybackSession", json);
-            VmLog($"[Session] Uložena relace: {session.CurrentSong?.Title} ({session.PositionSeconds:F1}s, {session.Queue.Count} skladeb ve frontě)");
+            VmLog($"[Session] Uložena relace: {session.CurrentSong?.Title} ({session.Queue.Count} skladeb ve frontě, začátek skladby 0:00)");
         }
         catch (Exception ex)
         {
@@ -2373,44 +2409,68 @@ public partial class MainViewModel : ObservableObject
             var session = JsonSerializer.Deserialize<PlaybackSessionModel>(json);
             if (session == null || (session.CurrentSong == null && (session.Queue == null || session.Queue.Count == 0))) return;
 
-            MainThread.BeginInvokeOnMainThread(() =>
+            if (MainThread.IsMainThread)
             {
-                PlaybackQueue.Clear();
-                _originalQueue.Clear();
-                if (session.Queue != null)
-                {
-                    foreach (var s in session.Queue)
-                    {
-                        PlaybackQueue.Add(s);
-                        _originalQueue.Add(s);
-                    }
-                }
-
-                CurrentQueueIndex = session.QueueIndex >= 0 && session.QueueIndex < PlaybackQueue.Count
-                    ? session.QueueIndex
-                    : (PlaybackQueue.Count > 0 ? 0 : -1);
-
-                CurrentSong = session.CurrentSong;
-                SelectedQueueSong = session.CurrentSong;
-                if (session.CurrentSong != null)
-                {
-                    IsCurrentSongLiked = session.CurrentSong.IsLiked;
-                }
-
-                PositionSeconds = session.PositionSeconds;
-                DurationSeconds = session.DurationSeconds;
-                PositionText = TimeSpan.FromSeconds(session.PositionSeconds).ToString(@"m\:ss");
-                DurationText = session.DurationSeconds > 0 ? TimeSpan.FromSeconds(session.DurationSeconds).ToString(@"m\:ss") : "0:00";
-
-                _isRestoredSessionPending = true;
-                _restoredPositionSeconds = session.PositionSeconds;
-                StatusMessage = $"Předchozí relace načtena: {session.CurrentSong?.Title}";
-                VmLog($"[Session] Obnovena relace přehrávače: {session.CurrentSong?.Title} na pozici {session.PositionSeconds:F1}s");
-            });
+                ApplyRestoredSession(session);
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() => ApplyRestoredSession(session));
+            }
         }
         catch (Exception ex)
         {
             VmLog($"[Session] Chyba při obnovení relace: {ex.Message}");
+        }
+    }
+
+    private void ApplyRestoredSession(PlaybackSessionModel session)
+    {
+        _isRestoringSession = true;
+        try
+        {
+            PlaybackQueue.Clear();
+            _originalQueue.Clear();
+            if (session.Queue != null)
+            {
+                foreach (var s in session.Queue)
+                {
+                    PlaybackQueue.Add(s);
+                    _originalQueue.Add(s);
+                }
+            }
+
+            CurrentQueueIndex = session.QueueIndex >= 0 && session.QueueIndex < PlaybackQueue.Count
+                ? session.QueueIndex
+                : (PlaybackQueue.Count > 0 ? 0 : -1);
+
+            CurrentSong = session.CurrentSong;
+            SelectedQueueSong = session.CurrentSong;
+            if (session.CurrentSong != null)
+            {
+                IsCurrentSongLiked = session.CurrentSong.IsLiked;
+            }
+
+            // Uchovává se pouze poslední skladba a nikoli kde v té skladbě uživatel skončil (vždy začátek 0:00)
+            PositionSeconds = 0;
+            DurationSeconds = session.DurationSeconds > 0
+                ? session.DurationSeconds
+                : DiscordRpcService.ParseDurationToSeconds(session.CurrentSong?.Duration);
+
+            PositionText = "0:00";
+            DurationText = DurationSeconds > 0 ? TimeSpan.FromSeconds(DurationSeconds).ToString(@"m\:ss") : "0:00";
+
+            _isRestoredSessionPending = true;
+            _restoredPositionSeconds = 0;
+            StatusMessage = $"Předchozí relace načtena: {session.CurrentSong?.Title}";
+            VmLog($"[Session] Obnovena relace přehrávače: {session.CurrentSong?.Title} (od začátku 0:00)");
+
+            // Okamžitě synchronizovat načtenou skladbu i její pozici (0:00) a délku do Discord RPC
+            _discordRpcService?.UpdatePlaybackState(session.CurrentSong, IsPlaying, 0, DurationSeconds);
+        }
+        finally
+        {
+            _isRestoringSession = false;
         }
     }
 

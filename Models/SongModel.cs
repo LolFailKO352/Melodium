@@ -18,6 +18,12 @@ namespace Melodium.Models
 
         [ObservableProperty]
         public partial bool IsLiked { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsCurrent { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsCurrentlyPlaying { get; set; }
     }
 }
 

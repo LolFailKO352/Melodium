@@ -4,7 +4,28 @@ All notable changes to **Melodium** are documented in this file. The format is b
 
 ---
 
-## [1.8.0] – 2026-10-08
+## [1.8.0] – 2026-10-22
+
+### 🔊 Audio & Volume Control
+- **Mouse Wheel Volume Scrolling**:
+  - Added intuitive volume adjustment by rolling the mouse wheel over the bottom player volume slider or mute button.
+  - Fullscreen player support: adjust volume with the mouse wheel directly over the fullscreen volume slider, mute button, or anywhere across the large album artwork.
+  - Precise 2% volume increments per wheel notch with smooth clamping between 0% and 100%.
+  - **Fullscreen Volume OSD**: Scrolling over the album art or controls displays a sleek on-screen volume pill indicating the current percentage and mute state, which automatically fades out after adjustment.
+
+### 🎮 Discord Rich Presence
+- **Dynamic Track Status & Album Artwork**:
+  - Live Discord profile status now displays the currently playing track title, artist name, and synchronized elapsed/remaining timestamps.
+  - Renders high-resolution album cover artwork directly in the Discord status activity card.
+  - **Player State & Session Restoration Mirroring**: Identically reflects the player's active state into Discord RPC — including restored songs from previous sessions with their exact position, duration, and paused state without delays or default placeholder glitches.
+  - **Auto-Reconnect**: Seamlessly detects and connects to Discord even if Discord is launched after Melodium.
+
+### 🎨 Fluent Motion & Animations
+- **Natural Deceleration Transitions (`CircleEase.EaseOut`)**:
+  - Upgraded carousel transitions with hardware-accelerated circular deceleration curves for instantaneous response and velvety smooth stops.
+  - Smooth slide and crossfade animations for Homepage Hero Spotlight carousel, Trending Songs, and Trending Albums pagination.
+  - Fluid open and close transitions for the fullscreen player overlay.
+  - Smooth horizontal mouse-wheel scrolling for Quick Mood pills and dynamic home sections.
 
 ### 🚀 Update Experience & Changelog
 - **Scrollable Changelog / Release Notes**:
@@ -15,6 +36,11 @@ All notable changes to **Melodium** are documented in this file. The format is b
   - The top update notification InfoBar now includes an instant preview of the changelog for the incoming version without having to open an external browser.
 
 ### 🛠️ Improvements & Adjustments
+- **Microsoft Store Fluent Left Navigation Rail**:
+  - Implemented authentic Microsoft Store navigation rail with vertical icon + centered label layout.
+  - Dedicated Home tile at the top with left accent indicator and rounded fluent card background when active.
+  - Explore (Apps style), What's New, Settings, and Library (bottom-docked) with fluent hover and active states.
+  - Unified user account profile into the header avatar menu, removing duplication.
 - Bumped project version to 1.8.0 across application manifests, WiX installer, and build metadata.
 
 ---

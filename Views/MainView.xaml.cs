@@ -7,6 +7,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Composition;
 using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Web.WebView2.Core;
@@ -30,6 +32,20 @@ public sealed partial class MainView : UserControl
             SetupBlurEffect();
             SyncNavSelection(ViewModel?.CurrentView ?? "Home");
 
+            // Mouse wheel volume control for volume sliders, mute buttons, and fullscreen album art
+            BottomVolumeSlider?.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnVolumePointerWheelChanged), true);
+            BottomVolumeMuteButton?.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnVolumePointerWheelChanged), true);
+            FullScreenVolumeSlider?.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnVolumePointerWheelChanged), true);
+            FullScreenVolumeMuteButton?.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnVolumePointerWheelChanged), true);
+            FullScreenAlbumArtContainer?.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnVolumePointerWheelChanged), true);
+
+            // Escape key to close fullscreen player
+            this.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnMainViewKeyDown), true);
+
+            // Initialize fullscreen player animations and initial state
+            InitFullScreenAnimations();
+            OnFullScreenVisibilityChanged(ViewModel?.IsFullScreenPlayerVisible ?? false, immediate: true);
+
             if (ViewModel != null)
             {
                 ViewModel.ActiveLyricChanged += OnActiveLyricChanged;
@@ -42,39 +58,49 @@ public sealed partial class MainView : UserControl
                             SyncNavSelection(ViewModel.CurrentView);
                         });
                     }
+                    else if (args.PropertyName == nameof(MainViewModel.IsFullScreenPlayerVisible))
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            OnFullScreenVisibilityChanged(ViewModel.IsFullScreenPlayerVisible);
+                        });
+                    }
+                    else if (args.PropertyName == nameof(MainViewModel.HeroSpotlightIndex))
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            if (ViewModel != null && ViewModel.HeroSpotlightIndex != _lastHeroIndex)
+                            {
+                                int current = ViewModel.HeroSpotlightIndex;
+                                double offset = current > _lastHeroIndex ? 55 : -55;
+                                _lastHeroIndex = current;
+                                AnimateHeroSpotlight(offset);
+                            }
+                        });
+                    }
                 };
             }
         };
     }
 
-    private NavigationViewItem? FindNavItem(string? tag)
-    {
-        if (string.IsNullOrEmpty(tag)) return null;
-        return NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag)
-            ?? NavView.FooterMenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag);
-    }
-
     private void SyncNavSelection(string? viewName)
     {
-        if (string.IsNullOrEmpty(viewName)) return;
-
-        var item = FindNavItem(viewName);
-        if (item != null)
-        {
-            NavView.SelectedItem = item;
-        }
-        else if (viewName == "Home")
-        {
-            NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
-        }
-        else
-        {
-            NavView.SelectedItem = null;
-        }
-
         if (TitleBarBackButton != null)
         {
             TitleBarBackButton.IsEnabled = viewName != "Home";
+        }
+    }
+
+    private void OnNavHomeClick(object sender, RoutedEventArgs e) => ViewModel?.NavigateCommand.Execute("Home");
+    private void OnNavExploreClick(object sender, RoutedEventArgs e) => ViewModel?.NavigateCommand.Execute("Explore");
+    private void OnNavLibraryClick(object sender, RoutedEventArgs e) => ViewModel?.NavigateCommand.Execute("Library");
+    private void OnNavSettingsClick(object sender, RoutedEventArgs e) => ViewModel?.NavigateCommand.Execute("Settings");
+    private void OnNavWhatsNewClick(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel != null)
+        {
+            ViewModel.NavigateCommand.Execute("Settings");
+            _ = ViewModel.CheckForUpdatesCommand.ExecuteAsync(null);
         }
     }
 
@@ -135,10 +161,144 @@ public sealed partial class MainView : UserControl
         }
     }
 
+    private Storyboard? _openFullScreenStoryboard;
+    private Storyboard? _closeFullScreenStoryboard;
+    private bool _isBlurSetup = false;
+
+    private void EnsureBlurEffect()
+    {
+        if (_isBlurSetup) return;
+        SetupBlurEffect();
+    }
+
+    private void InitFullScreenAnimations()
+    {
+        if (_openFullScreenStoryboard != null && _closeFullScreenStoryboard != null) return;
+        if (FullScreenOverlay == null || FullScreenTransform == null) return;
+
+        var easeOut = new CircleEase { EasingMode = EasingMode.EaseOut };
+        var easeIn = new CircleEase { EasingMode = EasingMode.EaseIn };
+
+        // Open animation: fast fade in (0 -> 1) and slide up (60 -> 0) with circular deceleration
+        _openFullScreenStoryboard = new Storyboard();
+
+        var openOpacity = new DoubleAnimation
+        {
+            From = 0.0,
+            To = 1.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(220)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(openOpacity, FullScreenOverlay);
+        Storyboard.SetTargetProperty(openOpacity, "Opacity");
+        _openFullScreenStoryboard.Children.Add(openOpacity);
+
+        var openSlide = new DoubleAnimation
+        {
+            From = 60.0,
+            To = 0.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(260)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(openSlide, FullScreenTransform);
+        Storyboard.SetTargetProperty(openSlide, "Y");
+        _openFullScreenStoryboard.Children.Add(openSlide);
+
+        // Close animation: fade out (1 -> 0) and slide down (0 -> 60) with circular acceleration
+        _closeFullScreenStoryboard = new Storyboard();
+
+        var closeOpacity = new DoubleAnimation
+        {
+            To = 0.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+            EasingFunction = easeIn
+        };
+        Storyboard.SetTarget(closeOpacity, FullScreenOverlay);
+        Storyboard.SetTargetProperty(closeOpacity, "Opacity");
+        _closeFullScreenStoryboard.Children.Add(closeOpacity);
+
+        var closeSlide = new DoubleAnimation
+        {
+            To = 60.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+            EasingFunction = easeIn
+        };
+        Storyboard.SetTarget(closeSlide, FullScreenTransform);
+        Storyboard.SetTargetProperty(closeSlide, "Y");
+        _closeFullScreenStoryboard.Children.Add(closeSlide);
+
+        _closeFullScreenStoryboard.Completed += (s, e) =>
+        {
+            if (ViewModel?.IsFullScreenPlayerVisible == false)
+            {
+                FullScreenOverlay.Visibility = Visibility.Collapsed;
+                FullScreenOverlay.Opacity = 0.0;
+                if (FullScreenTransform != null)
+                {
+                    FullScreenTransform.Y = 0.0;
+                }
+            }
+        };
+    }
+
+    private void OnFullScreenVisibilityChanged(bool isVisible, bool immediate = false)
+    {
+        if (FullScreenOverlay == null) return;
+
+        if (isVisible)
+        {
+            _closeFullScreenStoryboard?.Stop();
+
+            InitFullScreenAnimations();
+            EnsureBlurEffect();
+
+            FullScreenOverlay.Visibility = Visibility.Visible;
+
+            if (immediate)
+            {
+                FullScreenOverlay.Opacity = 1.0;
+                if (FullScreenTransform != null) FullScreenTransform.Y = 0.0;
+            }
+            else
+            {
+                _openFullScreenStoryboard?.Begin();
+            }
+        }
+        else
+        {
+            _openFullScreenStoryboard?.Stop();
+
+            if (immediate || FullScreenOverlay.Visibility != Visibility.Visible)
+            {
+                FullScreenOverlay.Visibility = Visibility.Collapsed;
+                FullScreenOverlay.Opacity = 0.0;
+                if (FullScreenTransform != null) FullScreenTransform.Y = 0.0;
+            }
+            else
+            {
+                InitFullScreenAnimations();
+                _closeFullScreenStoryboard?.Begin();
+            }
+        }
+    }
+
+    private void OnMainViewKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Escape)
+        {
+            if (ViewModel != null && ViewModel.IsFullScreenPlayerVisible)
+            {
+                ViewModel.IsFullScreenPlayerVisible = false;
+                e.Handled = true;
+            }
+        }
+    }
+
     private void SetupBlurEffect()
     {
         try
         {
+            _isBlurSetup = true;
             var hostVisual = ElementCompositionPreview.GetElementVisual(BlurOverlay);
             var compositor = hostVisual.Compositor;
 
@@ -170,26 +330,6 @@ public sealed partial class MainView : UserControl
         }
     }
 
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-    {
-        if (args.SelectedItemContainer?.Tag is string tag)
-        {
-            if (tag == "Login")
-            {
-                if (ViewModel?.IsLoggedIn == true)
-                {
-                    AccountNavItem?.ContextFlyout?.ShowAt(AccountNavItem);
-                }
-                else
-                {
-                    OpenLoginWindow();
-                    SyncNavSelection(ViewModel?.CurrentView);
-                }
-                return;
-            }
-            ViewModel?.NavigateCommand.Execute(tag);
-        }
-    }
 
     private DispatcherTimer? _searchDebounceTimer;
 
@@ -245,8 +385,6 @@ public sealed partial class MainView : UserControl
         ViewModel.SearchQuery = query.Trim();
         ViewModel.PerformSearchCommand.Execute(null);
 
-        // Odznačit položky v navigaci (vyhledávání má vlastní zobrazení)
-        NavView.SelectedItem = null;
     }
 
     private void OnBackToHomeClick(object sender, RoutedEventArgs e)
@@ -258,21 +396,163 @@ public sealed partial class MainView : UserControl
         }
     }
 
+    private Storyboard? _heroStoryboard;
+    private int _lastHeroIndex = 0;
+    private Storyboard? _trendingSongsStoryboard;
+    private Storyboard? _trendingAlbumsStoryboard;
+
+    private void AnimateHeroSpotlight(double fromOffset)
+    {
+        if (HeroSpotlightSlideContent == null || HeroSpotlightTransform == null) return;
+
+        _heroStoryboard?.Stop();
+        _heroStoryboard = new Storyboard();
+
+        var easeOut = new CircleEase { EasingMode = EasingMode.EaseOut };
+
+        var slideAnim = new DoubleAnimation
+        {
+            From = fromOffset,
+            To = 0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(230)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(slideAnim, HeroSpotlightTransform);
+        Storyboard.SetTargetProperty(slideAnim, "X");
+        _heroStoryboard.Children.Add(slideAnim);
+
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 0.0,
+            To = 1.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(200)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(opacityAnim, HeroSpotlightSlideContent);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+        _heroStoryboard.Children.Add(opacityAnim);
+
+        _heroStoryboard.Begin();
+    }
+
+    private void AnimateTrendingSongs(double fromOffset)
+    {
+        if (TrendingSongsContainer == null || TrendingSongsTransform == null) return;
+
+        _trendingSongsStoryboard?.Stop();
+        _trendingSongsStoryboard = new Storyboard();
+
+        var easeOut = new CircleEase { EasingMode = EasingMode.EaseOut };
+
+        var slideAnim = new DoubleAnimation
+        {
+            From = fromOffset,
+            To = 0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(210)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(slideAnim, TrendingSongsTransform);
+        Storyboard.SetTargetProperty(slideAnim, "X");
+        _trendingSongsStoryboard.Children.Add(slideAnim);
+
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 0.0,
+            To = 1.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(opacityAnim, TrendingSongsContainer);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+        _trendingSongsStoryboard.Children.Add(opacityAnim);
+
+        _trendingSongsStoryboard.Begin();
+    }
+
+    private void AnimateTrendingAlbums(double fromOffset)
+    {
+        if (TrendingAlbumsContainer == null || TrendingAlbumsTransform == null) return;
+
+        _trendingAlbumsStoryboard?.Stop();
+        _trendingAlbumsStoryboard = new Storyboard();
+
+        var easeOut = new CircleEase { EasingMode = EasingMode.EaseOut };
+
+        var slideAnim = new DoubleAnimation
+        {
+            From = fromOffset,
+            To = 0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(210)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(slideAnim, TrendingAlbumsTransform);
+        Storyboard.SetTargetProperty(slideAnim, "X");
+        _trendingAlbumsStoryboard.Children.Add(slideAnim);
+
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 0.0,
+            To = 1.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+            EasingFunction = easeOut
+        };
+        Storyboard.SetTarget(opacityAnim, TrendingAlbumsContainer);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+        _trendingAlbumsStoryboard.Children.Add(opacityAnim);
+
+        _trendingAlbumsStoryboard.Begin();
+    }
+
+    private void OnHorizontalScrollViewerPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            var pointerPoint = e.GetCurrentPoint(sv);
+            int delta = pointerPoint.Properties.MouseWheelDelta;
+            if (delta != 0)
+            {
+                double scrollStep = 240.0;
+                double targetOffset = sv.HorizontalOffset - (Math.Sign(delta) * scrollStep);
+                targetOffset = Math.Clamp(targetOffset, 0, sv.ScrollableWidth);
+                sv.ChangeView(targetOffset, null, null, disableAnimation: false);
+                e.Handled = true;
+            }
+        }
+    }
+
     private void OnHeroPrevClick(object sender, RoutedEventArgs e)
     {
-        ViewModel?.PreviousHeroSpotlightCommand.Execute(null);
+        if (ViewModel != null)
+        {
+            int count = ViewModel.HeroSpotlightItems.Count;
+            int prev = count > 0 ? (ViewModel.HeroSpotlightIndex - 1 + count) % count : 0;
+            _lastHeroIndex = prev;
+            AnimateHeroSpotlight(-55);
+            ViewModel.PreviousHeroSpotlightCommand.Execute(null);
+        }
     }
 
     private void OnHeroNextClick(object sender, RoutedEventArgs e)
     {
-        ViewModel?.NextHeroSpotlightCommand.Execute(null);
+        if (ViewModel != null)
+        {
+            int count = ViewModel.HeroSpotlightItems.Count;
+            int next = count > 0 ? (ViewModel.HeroSpotlightIndex + 1) % count : 0;
+            _lastHeroIndex = next;
+            AnimateHeroSpotlight(55);
+            ViewModel.NextHeroSpotlightCommand.Execute(null);
+        }
     }
 
     private void OnHeroDotClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement fe && int.TryParse(fe.Tag?.ToString(), out int idx))
+        if (ViewModel != null && sender is FrameworkElement fe && int.TryParse(fe.Tag?.ToString(), out int idx))
         {
-            ViewModel?.SelectHeroSpotlight(idx);
+            if (idx == ViewModel.HeroSpotlightIndex) return;
+            double offset = idx > ViewModel.HeroSpotlightIndex ? 55 : -55;
+            _lastHeroIndex = idx;
+            AnimateHeroSpotlight(offset);
+            ViewModel.SelectHeroSpotlight(idx);
         }
     }
 
@@ -312,21 +592,25 @@ public sealed partial class MainView : UserControl
 
     private void OnTrendingSongsPrevClick(object sender, RoutedEventArgs e)
     {
+        AnimateTrendingSongs(-45);
         ViewModel?.PreviousTrendingSongsCommand.Execute(null);
     }
 
     private void OnTrendingSongsNextClick(object sender, RoutedEventArgs e)
     {
+        AnimateTrendingSongs(45);
         ViewModel?.NextTrendingSongsCommand.Execute(null);
     }
 
     private void OnTrendingAlbumsPrevClick(object sender, RoutedEventArgs e)
     {
+        AnimateTrendingAlbums(-45);
         ViewModel?.PreviousTrendingAlbumsCommand.Execute(null);
     }
 
     private void OnTrendingAlbumsNextClick(object sender, RoutedEventArgs e)
     {
+        AnimateTrendingAlbums(45);
         ViewModel?.NextTrendingAlbumsCommand.Execute(null);
     }
 
@@ -888,7 +1172,6 @@ public sealed partial class MainView : UserControl
         {
             ViewModel.SearchQuery = ViewModel.CurrentArtist.Name;
             ViewModel.PerformSearchCommand.Execute(null);
-            NavView.SelectedItem = null;
         }
     }
 
@@ -932,16 +1215,69 @@ public sealed partial class MainView : UserControl
         }
     }
 
+    private DispatcherTimer? _volumeOsdTimer;
+
     private void OnVolumePointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is Slider slider && ViewModel != null)
+        if (ViewModel == null) return;
+
+        var element = sender as UIElement;
+        var pointerPoint = element != null ? e.GetCurrentPoint(element) : e.GetCurrentPoint(null);
+        int delta = pointerPoint.Properties.MouseWheelDelta;
+        if (delta == 0) return;
+
+        // MouseWheelDelta is typically +/-120 per detent.
+        double steps = delta / 120.0;
+        if (Math.Abs(steps) < 0.2)
         {
-            var delta = e.GetCurrentPoint(slider).Properties.MouseWheelDelta;
-            var change = (delta > 0 ? 0.05 : -0.05);
-            var newVol = Math.Clamp(slider.Value + change, 0, 1);
-            slider.Value = newVol;
-            e.Handled = true;
+            steps = delta > 0 ? 1.0 : -1.0;
         }
+
+        // Adjust volume in 5% steps
+        double change = steps * 0.05;
+        double newVol = Math.Clamp(Math.Round(ViewModel.Volume + change, 2), 0.0, 1.0);
+
+        if (Math.Abs(ViewModel.Volume - newVol) > 0.0001)
+        {
+            ViewModel.Volume = newVol;
+        }
+
+        // Show on-screen volume indicator if user scrolled over album art or fullscreen overlay is open
+        if (ReferenceEquals(sender, FullScreenAlbumArtContainer) || (FullScreenOverlay != null && FullScreenOverlay.Visibility == Visibility.Visible))
+        {
+            ShowFullScreenVolumeOsd();
+        }
+
+        e.Handled = true;
+    }
+
+    private void ShowFullScreenVolumeOsd()
+    {
+        if (FullScreenVolumeOsd == null) return;
+
+        FullScreenVolumeOsd.Opacity = 1.0;
+
+        if (_volumeOsdTimer == null)
+        {
+            _volumeOsdTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(1200)
+            };
+            _volumeOsdTimer.Tick += (s, args) =>
+            {
+                _volumeOsdTimer.Stop();
+                if (FullScreenVolumeOsd != null)
+                {
+                    FullScreenVolumeOsd.Opacity = 0.0;
+                }
+            };
+        }
+        else
+        {
+            _volumeOsdTimer.Stop();
+        }
+
+        _volumeOsdTimer.Start();
     }
 
     private LoginWindow? _loginWindow;
@@ -1009,7 +1345,6 @@ public sealed partial class MainView : UserControl
             {
                 await ViewModel.SaveSessionAsync(parsedCookies);
                 ViewModel.CurrentView = "Home";
-                NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
             }
             else
             {

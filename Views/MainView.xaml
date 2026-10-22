@@ -6,7 +6,8 @@
     xmlns:models="using:Melodium.Models"
     xmlns:viewmodels="using:Melodium.ViewModels"
     xmlns:converters="using:Melodium.Converters"
-    xmlns:services="using:Melodium.Services">
+    xmlns:services="using:Melodium.Services"
+    xmlns:controls="using:Melodium.Controls">
 
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
@@ -20,6 +21,10 @@
         <converters:BoolToVector3Converter x:Key="BoolToLyricScale" TrueScale="1.04" FalseScale="1.0" />
         <converters:BoolToThicknessConverter x:Key="BoolToLyricBorderThick" TrueValue="1.0" FalseValue="0.0" />
         <converters:StringEqualsToFontWeightConverter x:Key="StringToFontWeight" />
+        <converters:BoolToDoubleConverter x:Key="BoolToPlayerGlowOpacity" TrueValue="1.0" FalseValue="0.12" />
+        <converters:BoolToDoubleConverter x:Key="BoolToHaloOpacity" TrueValue="0.30" FalseValue="0.0" />
+        <converters:BoolToDoubleConverter x:Key="BoolToArtGlowOpacity" TrueValue="0.45" FalseValue="0.0" />
+        <converters:BoolToBrushConverter x:Key="BoolToAccentOrPrimary" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="{ThemeResource TextFillColorPrimaryBrush}" />
 
         <SolidColorBrush x:Key="MelodiumAccentBrush" Color="#28C6D0" />
         <SolidColorBrush x:Key="MelodiumCardBorderBrush" Color="#2D2F3C" />
@@ -60,6 +65,86 @@
         <converters:IntEqualsToBrushConverter x:Key="IntEqualsToBrush" TrueBrush="{StaticResource MelodiumAccentBrush}" FalseBrush="#45485A" />
         <converters:StringToImageSourceConverter x:Key="StringToImageSource" />
 
+        <!-- Microsoft Store Left Navigation Rail Resources -->
+        <SolidColorBrush x:Key="RailSelectedBgBrush" Color="#333842" />
+        <SolidColorBrush x:Key="RailUnselectedBgBrush" Color="Transparent" />
+        <SolidColorBrush x:Key="RailUnselectedFgBrush" Color="#A2A7B5" />
+        <SolidColorBrush x:Key="RailSelectedFgBrush" Color="#FFFFFF" />
+
+        <converters:StringEqualsToBrushConverter x:Key="RailBgConverter"
+            TrueBrush="{StaticResource RailSelectedBgBrush}"
+            FalseBrush="{StaticResource RailUnselectedBgBrush}" />
+
+        <converters:StringEqualsToBrushConverter x:Key="RailIconConverter"
+            TrueBrush="{StaticResource MelodiumAccentBrush}"
+            FalseBrush="{StaticResource RailUnselectedFgBrush}" />
+
+        <converters:StringEqualsToBrushConverter x:Key="RailTextConverter"
+            TrueBrush="{StaticResource RailSelectedFgBrush}"
+            FalseBrush="{StaticResource RailUnselectedFgBrush}" />
+
+        <Style x:Key="StoreRailButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="RootGrid" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter Target="HoverOverlay.Opacity" Value="0" />
+                                            <Setter Target="PressOverlay.Opacity" Value="0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="HoverOverlay.Opacity" Value="1" />
+                                            <Setter Target="PressOverlay.Opacity" Value="0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="HoverOverlay.Opacity" Value="0" />
+                                            <Setter Target="PressOverlay.Opacity" Value="1" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="RootGrid.Opacity" Value="0.5" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Border x:Name="HoverOverlay" Background="#16FFFFFF" CornerRadius="{TemplateBinding CornerRadius}" Opacity="0">
+                                <Border.OpacityTransition>
+                                    <ScalarTransition Duration="0:0:0.15" />
+                                </Border.OpacityTransition>
+                            </Border>
+                            <Border x:Name="PressOverlay" Background="#26FFFFFF" CornerRadius="{TemplateBinding CornerRadius}" Opacity="0">
+                                <Border.OpacityTransition>
+                                    <ScalarTransition Duration="0:0:0.1" />
+                                </Border.OpacityTransition>
+                            </Border>
+                            <ContentPresenter x:Name="ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTransitions="{TemplateBinding ContentTransitions}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="TitleBarIconButtonStyle" TargetType="Button">
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="0" />
@@ -80,6 +165,22 @@
             <Setter Property="CornerRadius" Value="3" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Width="{TemplateBinding Width}"
+                                Height="{TemplateBinding Height}">
+                            <Border.Transitions>
+                                <TransitionCollection>
+                                    <RepositionThemeTransition />
+                                </TransitionCollection>
+                            </Border.Transitions>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="HeroChevronButtonStyle" TargetType="Button">
@@ -89,9 +190,49 @@
             <Setter Property="Height" Value="36" />
             <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="#700C0E14" />
-            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="Background" Value="#800C0E14" />
+            <Setter Property="BorderBrush" Value="#35FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.18" />
+                            </Grid.OpacityTransition>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="HoverGlow.Opacity" Value="1" />
+                                            <Setter Target="Root.BorderBrush" Value="#6028C6D0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Opacity" Value="0.75" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Opacity" Value="0.3" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border x:Name="HoverGlow" Background="#2028C6D0" CornerRadius="{TemplateBinding CornerRadius}" Opacity="0">
+                                <Border.OpacityTransition>
+                                    <ScalarTransition Duration="0:0:0.18" />
+                                </Border.OpacityTransition>
+                            </Border>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="SectionPaginationButtonStyle" TargetType="Button">
@@ -104,6 +245,46 @@
             <Setter Property="Background" Value="#1CFFFFFF" />
             <Setter Property="BorderBrush" Value="#25FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.18" />
+                            </Grid.OpacityTransition>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="HoverGlow.Opacity" Value="1" />
+                                            <Setter Target="Root.BorderBrush" Value="#5028C6D0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Opacity" Value="0.7" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Root.Opacity" Value="0.3" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Border x:Name="HoverGlow" Background="#20FFFFFF" CornerRadius="{TemplateBinding CornerRadius}" Opacity="0">
+                                <Border.OpacityTransition>
+                                    <ScalarTransition Duration="0:0:0.18" />
+                                </Border.OpacityTransition>
+                            </Border>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="GlassPillButtonStyle" TargetType="Button">
@@ -126,6 +307,53 @@
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="TileRoot" CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.15" />
+                            </Grid.OpacityTransition>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter Target="TileHoverOverlay.Opacity" Value="0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="TileHoverOverlay.Opacity" Value="1" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="TileHoverOverlay.Opacity" Value="0.6" />
+                                            <Setter Target="TileRoot.Opacity" Value="0.88" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="TileRoot.Opacity" Value="0.5" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch" />
+
+                            <Border x:Name="TileHoverOverlay" Background="#14FFFFFF" BorderBrush="#5028C6D0" BorderThickness="1" CornerRadius="{TemplateBinding CornerRadius}" Opacity="0">
+                                <Border.OpacityTransition>
+                                    <ScalarTransition Duration="0:0:0.2" />
+                                </Border.OpacityTransition>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="MoodChipButtonStyle" TargetType="Button">
@@ -134,6 +362,49 @@
             <Setter Property="CornerRadius" Value="16" />
             <Setter Property="Padding" Value="14,6" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="ChipRoot"
+                              Background="{TemplateBinding Background}"
+                              BorderBrush="{TemplateBinding BorderBrush}"
+                              BorderThickness="{TemplateBinding BorderThickness}"
+                              CornerRadius="{TemplateBinding CornerRadius}"
+                              Padding="{TemplateBinding Padding}">
+                            <Grid.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.15" />
+                            </Grid.OpacityTransition>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter Target="ChipRoot.Opacity" Value="1.0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="ChipRoot.Opacity" Value="0.82" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="ChipRoot.Opacity" Value="0.65" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="ChipRoot.Opacity" Value="0.4" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="PlainTextLinkButtonStyle" TargetType="Button">
@@ -154,6 +425,64 @@
             <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="CardRoot"
+                              Background="{TemplateBinding Background}"
+                              BorderBrush="{TemplateBinding BorderBrush}"
+                              BorderThickness="{TemplateBinding BorderThickness}"
+                              CornerRadius="{TemplateBinding CornerRadius}"
+                              Padding="{TemplateBinding Padding}">
+                            <Grid.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.15" />
+                            </Grid.OpacityTransition>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter Target="CardHoverGlow.Opacity" Value="0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="CardHoverGlow.Opacity" Value="1" />
+                                            <Setter Target="CardRoot.BorderBrush" Value="#4528C6D0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="CardHoverGlow.Opacity" Value="0.6" />
+                                            <Setter Target="CardRoot.Opacity" Value="0.88" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="CardRoot.Opacity" Value="0.5" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <!-- Subtle hover ambient glow overlay -->
+                            <Border x:Name="CardHoverGlow"
+                                    Background="#0C28C6D0"
+                                    CornerRadius="{TemplateBinding CornerRadius}"
+                                    Opacity="0">
+                                <Border.OpacityTransition>
+                                    <ScalarTransition Duration="0:0:0.2" />
+                                </Border.OpacityTransition>
+                            </Border>
+
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              ContentTransitions="{TemplateBinding ContentTransitions}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -200,8 +529,7 @@
             <!-- Right: User Account Avatar & Window Caption Area Clearance -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,140,0" Spacing="8">
                 <Button Style="{StaticResource TitleBarIconButtonStyle}"
-                        ToolTipService.ToolTip="{x:Bind ViewModel.UserAccountTooltip, Mode=OneWay}"
-                        Click="OnGoToLoginClick">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.UserAccountTooltip, Mode=OneWay}">
                     <Button.Flyout>
                         <MenuFlyout>
                             <MenuFlyoutItem Text="{x:Bind ViewModel.UserProfileName, Mode=OneWay}" IsEnabled="False" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
@@ -222,73 +550,156 @@
 
         <!-- Middle Section: Navigation & Views (Microsoft Store Left Rail) -->
         <Grid Grid.Row="1">
-            <NavigationView
-                x:Name="NavView"
-                PaneDisplayMode="LeftCompact"
-                IsSettingsVisible="False"
-                IsBackButtonVisible="Collapsed"
-                SelectionChanged="NavView_SelectionChanged"
-                OpenPaneLength="210"
-                CompactPaneLength="56">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="68" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <NavigationView.Resources>
-                    <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
-                    <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#E6141520" />
-                    <SolidColorBrush x:Key="NavigationViewItemSelectionIndicatorForeground" Color="#28C6D0" />
-                </NavigationView.Resources>
-                
-                <NavigationView.MenuItems>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextHome, Mode=OneWay}"
-                                        Tag="Home"
-                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextHome, Mode=OneWay}">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE80F;" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextExplore, Mode=OneWay}"
-                                        Tag="Explore"
-                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextExplore, Mode=OneWay}">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE8A9;" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                </NavigationView.MenuItems>
+            <!-- Microsoft Store Left Navigation Rail -->
+            <Border Grid.Column="0"
+                    Background="Transparent"
+                    BorderBrush="#18FFFFFF"
+                    BorderThickness="0,0,1,0"
+                    Padding="0,6,0,8">
+                <Grid RowDefinitions="*, Auto">
+                    <!-- Top Navigation Items -->
+                    <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" Spacing="4">
+                        <!-- Home (Top Tile with selection bar) -->
+                        <Button Style="{StaticResource StoreRailButtonStyle}"
+                                Width="54" Height="48" Margin="0,2,0,4"
+                                Background="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailBgConverter}, ConverterParameter='Home'}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.TextHome, Mode=OneWay}"
+                                Click="OnNavHomeClick">
+                            <Grid>
+                                <Border Width="3" Height="16" CornerRadius="1.5"
+                                        Background="{StaticResource MelodiumAccentBrush}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Home'}">
+                                    <Border.Transitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromHorizontalOffset="-10" />
+                                        </TransitionCollection>
+                                    </Border.Transitions>
+                                </Border>
+                                <FontIcon Glyph="&#xE80F;" FontSize="20"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailIconConverter}, ConverterParameter='Home'}" />
+                            </Grid>
+                        </Button>
 
-                <NavigationView.FooterMenuItems>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextLibrary, Mode=OneWay}"
-                                        Tag="Library"
-                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextLibrary, Mode=OneWay}">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE8F1;" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                    <NavigationViewItem x:Name="AccountNavItem"
-                                        Content="{x:Bind ViewModel.TextAccount, Mode=OneWay}"
-                                        Tag="Login"
-                                        ToolTipService.ToolTip="{x:Bind ViewModel.UserAccountTooltip, Mode=OneWay}">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE77B;" />
-                        </NavigationViewItem.Icon>
-                        <NavigationViewItem.ContextFlyout>
-                            <MenuFlyout>
-                                <MenuFlyoutItem Text="{x:Bind ViewModel.UserProfileName, Mode=OneWay}" IsEnabled="False" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                <MenuFlyoutSeparator Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                <MenuFlyoutItem Text="{x:Bind ViewModel.TextLogout, Mode=OneWay}" Icon="Cancel" Command="{x:Bind ViewModel.LogoutCommand}" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                                <MenuFlyoutItem Text="{x:Bind ViewModel.TextLogin, Mode=OneWay}" Icon="Contact" Click="OnGoToLoginClick" Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
-                            </MenuFlyout>
-                        </NavigationViewItem.ContextFlyout>
-                    </NavigationViewItem>
-                    <NavigationViewItem Content="{x:Bind ViewModel.TextSettings, Mode=OneWay}"
-                                        Tag="Settings"
-                                        ToolTipService.ToolTip="{x:Bind ViewModel.TextSettings, Mode=OneWay}">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="&#xE713;" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                </NavigationView.FooterMenuItems>
+                        <!-- Explore (Microsoft Store 'Apps' style: icon on top, label underneath) -->
+                        <Button Style="{StaticResource StoreRailButtonStyle}"
+                                Width="58" Height="52" Margin="0,2,0,2"
+                                Background="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailBgConverter}, ConverterParameter='Explore'}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.TextExplore, Mode=OneWay}"
+                                Click="OnNavExploreClick">
+                            <Grid>
+                                <Border Width="3" Height="16" CornerRadius="1.5"
+                                        Background="{StaticResource MelodiumAccentBrush}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Explore'}">
+                                    <Border.Transitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromHorizontalOffset="-10" />
+                                        </TransitionCollection>
+                                    </Border.Transitions>
+                                </Border>
+                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                    <FontIcon Glyph="&#xE74C;" FontSize="19" HorizontalAlignment="Center"
+                                              Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailIconConverter}, ConverterParameter='Explore'}" />
+                                    <TextBlock Text="{x:Bind ViewModel.TextExplore, Mode=OneWay}"
+                                               FontSize="10" FontWeight="Normal"
+                                               TextAlignment="Center" HorizontalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="52"
+                                               Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailTextConverter}, ConverterParameter='Explore'}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
 
-                <!-- Content Container -->
-                <Grid RowDefinitions="Auto, *" Padding="24,8,24,0">
+                    <!-- Bottom Navigation Items (Footer: What's New, Settings, Library) -->
+                    <StackPanel Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" Spacing="4">
+                        <!-- What's New -->
+                        <Button Style="{StaticResource StoreRailButtonStyle}"
+                                Width="58" Height="52" Margin="0,2,0,2"
+                                ToolTipService.ToolTip="What's New"
+                                Click="OnNavWhatsNewClick">
+                            <Grid>
+                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                    <FontIcon Glyph="&#xE789;" FontSize="18" HorizontalAlignment="Center"
+                                              Foreground="{StaticResource RailUnselectedFgBrush}" />
+                                    <TextBlock Text="What's New"
+                                               FontSize="10" FontWeight="Normal"
+                                               TextAlignment="Center" HorizontalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="52"
+                                               Foreground="{StaticResource RailUnselectedFgBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Settings -->
+                        <Button Style="{StaticResource StoreRailButtonStyle}"
+                                Width="58" Height="52" Margin="0,2,0,2"
+                                Background="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailBgConverter}, ConverterParameter='Settings'}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.TextSettings, Mode=OneWay}"
+                                Click="OnNavSettingsClick">
+                            <Grid>
+                                <Border Width="3" Height="16" CornerRadius="1.5"
+                                        Background="{StaticResource MelodiumAccentBrush}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Settings'}">
+                                    <Border.Transitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromHorizontalOffset="-10" />
+                                        </TransitionCollection>
+                                    </Border.Transitions>
+                                </Border>
+                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                    <FontIcon Glyph="&#xE713;" FontSize="18" HorizontalAlignment="Center"
+                                              Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailIconConverter}, ConverterParameter='Settings'}" />
+                                    <TextBlock Text="{x:Bind ViewModel.TextSettings, Mode=OneWay}"
+                                               FontSize="10" FontWeight="Normal"
+                                               TextAlignment="Center" HorizontalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="52"
+                                               Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailTextConverter}, ConverterParameter='Settings'}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <!-- Library (At the very bottom, exactly like Microsoft Store) -->
+                        <Button Style="{StaticResource StoreRailButtonStyle}"
+                                Width="58" Height="52" Margin="0,2,0,4"
+                                Background="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailBgConverter}, ConverterParameter='Library'}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.TextLibrary, Mode=OneWay}"
+                                Click="OnNavLibraryClick">
+                            <Grid>
+                                <Border Width="3" Height="16" CornerRadius="1.5"
+                                        Background="{StaticResource MelodiumAccentBrush}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Library'}">
+                                    <Border.Transitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromHorizontalOffset="-10" />
+                                        </TransitionCollection>
+                                    </Border.Transitions>
+                                </Border>
+                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                    <FontIcon Glyph="&#xE8F1;" FontSize="19" HorizontalAlignment="Center"
+                                              Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailIconConverter}, ConverterParameter='Library'}" />
+                                    <TextBlock Text="{x:Bind ViewModel.TextLibrary, Mode=OneWay}"
+                                               FontSize="10" FontWeight="Normal"
+                                               TextAlignment="Center" HorizontalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="52"
+                                               Foreground="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource RailTextConverter}, ConverterParameter='Library'}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Content Container -->
+            <Grid Grid.Column="1" RowDefinitions="Auto, *" Padding="24,8,24,0">
                     
                     <!-- Top Notification (Updates) -->
                     <StackPanel Grid.Row="0" Margin="0,0,0,12" Spacing="8">
@@ -331,6 +742,12 @@
 
                     <!-- VIEWS CONTAINER -->
                     <Grid Grid.Row="1">
+                        <Grid.ChildrenTransitions>
+                            <TransitionCollection>
+                                <EntranceThemeTransition FromVerticalOffset="20" />
+                                <RepositionThemeTransition />
+                            </TransitionCollection>
+                        </Grid.ChildrenTransitions>
 
                         <!-- VIEW: HOME -->
                         <ScrollViewer Visibility="{x:Bind ViewModel.CurrentView, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Home'}" VerticalScrollBarVisibility="Auto">
@@ -343,6 +760,12 @@
                                         CornerRadius="12"
                                         Padding="16,12"
                                         Margin="0,0,0,4">
+                                    <Border.Transitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromVerticalOffset="-15" />
+                                            <RepositionThemeTransition />
+                                        </TransitionCollection>
+                                    </Border.Transitions>
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                             <GradientStop Color="#202538" Offset="0" />
@@ -392,60 +815,72 @@
                                     <!-- Left Column: Big Featured Spotlight Card (Minecraft Dungeons II style) -->
                                     <Border Grid.Column="0" CornerRadius="12" Background="#181822" BorderBrush="{StaticResource MelodiumCardBorderBrush}" BorderThickness="1">
                                         <Grid CornerRadius="12">
-                                            <!-- Background Artwork with fallback -->
-                                            <Image Source="{x:Bind ViewModel.FeaturedSpotlightThumbnail, Mode=OneWay, Converter={StaticResource StringToImageSource}}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            
-                                            <!-- Dark Gradient Overlay for text contrast -->
-                                            <Grid>
-                                                <Grid.Background>
-                                                     <LinearGradientBrush StartPoint="0,1" EndPoint="0.85,0.1">
-                                                        <GradientStop Color="#F80E1016" Offset="0.0" />
-                                                        <GradientStop Color="#D80E1016" Offset="0.45" />
-                                                        <GradientStop Color="#600E1016" Offset="0.75" />
-                                                        <GradientStop Color="#150E1016" Offset="1.0" />
-                                                    </LinearGradientBrush>
-                                                </Grid.Background>
+                                            <!-- Animated Carousel Slide Content (Artwork + Gradient + Info) -->
+                                            <Grid x:Name="HeroSpotlightSlideContent">
+                                                <Grid.RenderTransform>
+                                                    <TranslateTransform x:Name="HeroSpotlightTransform" X="0" />
+                                                </Grid.RenderTransform>
+
+                                                <!-- Background Artwork with fallback -->
+                                                <Image Source="{x:Bind ViewModel.FeaturedSpotlightThumbnail, Mode=OneWay, Converter={StaticResource StringToImageSource}}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                
+                                                <!-- Dark Gradient Overlay for text contrast -->
+                                                <Grid>
+                                                    <Grid.Background>
+                                                         <LinearGradientBrush StartPoint="0,1" EndPoint="0.85,0.1">
+                                                            <GradientStop Color="#F80E1016" Offset="0.0" />
+                                                            <GradientStop Color="#D80E1016" Offset="0.45" />
+                                                            <GradientStop Color="#600E1016" Offset="0.75" />
+                                                            <GradientStop Color="#150E1016" Offset="1.0" />
+                                                        </LinearGradientBrush>
+                                                    </Grid.Background>
+                                                </Grid>
+
+                                                <!-- Content Grid -->
+                                                <Grid Margin="24,20" RowDefinitions="Auto, *">
+                                                    <!-- Top Badges -->
+                                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                                                        <Border Background="{StaticResource MelodiumAccentBrush}" CornerRadius="6" Padding="9,4">
+                                                            <TextBlock Text="HLAVNÍ VÝBĚR" FontSize="11" FontWeight="Bold" Foreground="#0E1016" />
+                                                        </Border>
+                                                        <Border Background="#25FFFFFF" BorderBrush="#1CFFFFFF" BorderThickness="1" CornerRadius="6" Padding="9,4">
+                                                            <TextBlock Text="Melodium • Bez reklam" FontSize="11" FontWeight="SemiBold" Foreground="#E0E0E0" />
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <!-- Center / Bottom Content: Title, Subtitle, Play Button -->
+                                                    <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Spacing="8" Margin="0,0,0,32">
+                                                        <TextBlock Text="{x:Bind ViewModel.FeaturedSpotlightTitle, Mode=OneWay}"
+                                                                   FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"
+                                                                   MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind ViewModel.FeaturedSpotlightSubtitle, Mode=OneWay}"
+                                                                   FontSize="13" Foreground="#B8C0D0" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                                        
+                                                        <Button Command="{x:Bind ViewModel.PlayFeaturedSpotlightCommand}"
+                                                                Style="{ThemeResource AccentButtonStyle}"
+                                                                CornerRadius="20" Padding="22,9" Margin="0,8,0,0">
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <FontIcon Glyph="&#xE768;" FontSize="13" />
+                                                                <TextBlock Text="Přehrát nyní" FontWeight="SemiBold" FontSize="13" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Grid>
                                             </Grid>
 
-                                            <!-- Content Grid -->
-                                            <Grid Margin="24,20" RowDefinitions="Auto, *, Auto">
-                                                <!-- Top Badges -->
-                                                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
-                                                    <Border Background="{StaticResource MelodiumAccentBrush}" CornerRadius="6" Padding="9,4">
-                                                        <TextBlock Text="HLAVNÍ VÝBĚR" FontSize="11" FontWeight="Bold" Foreground="#0E1016" />
-                                                    </Border>
-                                                    <Border Background="#25FFFFFF" BorderBrush="#1CFFFFFF" BorderThickness="1" CornerRadius="6" Padding="9,4">
-                                                        <TextBlock Text="Melodium • Bez reklam" FontSize="11" FontWeight="SemiBold" Foreground="#E0E0E0" />
-                                                    </Border>
-                                                </StackPanel>
-
-                                                <!-- Center / Bottom Content: Title, Subtitle, Play Button -->
-                                                <StackPanel Grid.Row="1" VerticalAlignment="Bottom" Spacing="8" Margin="0,0,0,10">
-                                                    <TextBlock Text="{x:Bind ViewModel.FeaturedSpotlightTitle, Mode=OneWay}"
-                                                               FontSize="28" FontWeight="Bold" Foreground="#FFFFFF"
-                                                               MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{x:Bind ViewModel.FeaturedSpotlightSubtitle, Mode=OneWay}"
-                                                               FontSize="13" Foreground="#B8C0D0" MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                                    
-                                                    <Button Command="{x:Bind ViewModel.PlayFeaturedSpotlightCommand}"
-                                                            Style="{ThemeResource AccentButtonStyle}"
-                                                            CornerRadius="20" Padding="22,9" Margin="0,8,0,0">
-                                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                                            <FontIcon Glyph="&#xE768;" FontSize="13" />
-                                                            <TextBlock Text="Přehrát nyní" FontWeight="SemiBold" FontSize="13" />
-                                                        </StackPanel>
-                                                    </Button>
-                                                </StackPanel>
-
-                                                <!-- Bottom Center: Carousel Indicators -->
-                                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6" Margin="0,4,0,0">
-                                                    <Button Tag="0" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='0'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='0'}" />
-                                                    <Button Tag="1" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='1'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='1'}" />
-                                                    <Button Tag="2" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='2'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='2'}" />
-                                                    <Button Tag="3" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='3'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='3'}" />
-                                                    <Button Tag="4" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='4'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='4'}" />
-                                                </StackPanel>
-                                            </Grid>
+                                            <!-- Static Carousel Indicators (Anchored) -->
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Spacing="6" Margin="0,0,0,16">
+                                                <StackPanel.ChildrenTransitions>
+                                                    <TransitionCollection>
+                                                        <RepositionThemeTransition />
+                                                    </TransitionCollection>
+                                                </StackPanel.ChildrenTransitions>
+                                                <Button Tag="0" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='0'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='0'}" />
+                                                <Button Tag="1" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='1'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='1'}" />
+                                                <Button Tag="2" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='2'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='2'}" />
+                                                <Button Tag="3" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='3'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='3'}" />
+                                                <Button Tag="4" Click="OnHeroDotClick" Style="{StaticResource HeroDotButtonStyle}" Width="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToDouble}, ConverterParameter='4'}" Background="{x:Bind ViewModel.HeroSpotlightIndex, Mode=OneWay, Converter={StaticResource IntEqualsToBrush}, ConverterParameter='4'}" />
+                                            </StackPanel>
 
                                             <!-- Left / Right Carousel Navigation Chevrons -->
                                             <Button Click="OnHeroPrevClick"
@@ -535,7 +970,11 @@
                                 </Grid>
 
                                 <!-- 2. QUICK MOOD PILLS (YouTube Music Style) -->
-                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Disabled"
+                                              HorizontalScrollMode="Enabled"
+                                              VerticalScrollMode="Disabled"
+                                              PointerWheelChanged="OnHorizontalScrollViewerPointerWheelChanged">
                                     <ItemsRepeater ItemsSource="{x:Bind ViewModel.MoodFilters, Mode=OneWay}">
                                         <ItemsRepeater.Layout>
                                             <StackLayout Orientation="Horizontal" Spacing="8" />
@@ -589,43 +1028,48 @@
                                             </Grid>
 
                                             <!-- 6 items in 2 columns -->
-                                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}">
-                                                <ItemsRepeater.Layout>
-                                                    <UniformGridLayout MinItemWidth="220" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
-                                                </ItemsRepeater.Layout>
-                                                <ItemsRepeater.ItemTemplate>
-                                                    <DataTemplate x:DataType="models:SongModel">
-                                                        <Button Style="{StaticResource MediaCardButtonStyle}" Padding="6" CornerRadius="8" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
-                                                            <Button.ContextFlyout>
-                                                                <MenuFlyout>
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextStartMix, Mode=OneWay}" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
-                                                                    <MenuFlyoutSeparator />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextGoToArtist, Mode=OneWay}" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
-                                                                </MenuFlyout>
-                                                            </Button.ContextFlyout>
-                                                            <Grid ColumnDefinitions="48, *, Auto">
-                                                                <Border Grid.Column="0" CornerRadius="6">
-                                                                    <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="48" Height="48" />
-                                                                </Border>
-                                                                <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
-                                                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                                    <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,2,0,0" />
-                                                                </StackPanel>
-                                                                <Border Grid.Column="2" Background="#1828C6D0" BorderBrush="#3528C6D0" BorderThickness="1" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                                        <FontIcon Glyph="&#xE768;" FontSize="10" Foreground="{StaticResource MelodiumAccentBrush}" />
-                                                                        <TextBlock Text="Přehrát" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                            <Grid x:Name="TrendingSongsContainer">
+                                                <Grid.RenderTransform>
+                                                    <TranslateTransform x:Name="TrendingSongsTransform" X="0" />
+                                                </Grid.RenderTransform>
+                                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}">
+                                                    <ItemsRepeater.Layout>
+                                                        <UniformGridLayout MinItemWidth="220" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                                    </ItemsRepeater.Layout>
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:SongModel">
+                                                            <Button Style="{StaticResource MediaCardButtonStyle}" Padding="6" CornerRadius="8" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnSongCardClick">
+                                                                <Button.ContextFlyout>
+                                                                    <MenuFlyout>
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" CommandParameter="{x:Bind}" Click="OnSongContextPlayClick" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextStartMix, Mode=OneWay}" Icon="Audio" CommandParameter="{x:Bind}" Click="OnSongContextStartMixClick" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextPlayNextClick" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToQueueClick" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" CommandParameter="{x:Bind}" Click="OnSongContextAddToPlaylistClick" />
+                                                                        <MenuFlyoutSeparator />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextGoToArtist, Mode=OneWay}" Icon="Contact" CommandParameter="{x:Bind}" Click="OnSongContextOpenArtistClick" />
+                                                                    </MenuFlyout>
+                                                                </Button.ContextFlyout>
+                                                                <Grid ColumnDefinitions="48, *, Auto">
+                                                                    <Border Grid.Column="0" CornerRadius="6">
+                                                                        <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="48" Height="48" />
+                                                                    </Border>
+                                                                    <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                        <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,2,0,0" />
                                                                     </StackPanel>
-                                                                </Border>
-                                                            </Grid>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsRepeater.ItemTemplate>
-                                            </ItemsRepeater>
+                                                                    <Border Grid.Column="2" Background="#1828C6D0" BorderBrush="#3528C6D0" BorderThickness="1" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
+                                                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                            <FontIcon Glyph="&#xE768;" FontSize="10" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                                            <TextBlock Text="Přehrát" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </Grid>
                                         </StackPanel>
                                     </Border>
 
@@ -652,40 +1096,45 @@
                                             </Grid>
 
                                             <!-- 6 items in 2 columns -->
-                                            <ItemsRepeater ItemsSource="{x:Bind ViewModel.TrendingAlbumsAndPlaylists, Mode=OneWay}">
-                                                <ItemsRepeater.Layout>
-                                                    <UniformGridLayout MinItemWidth="220" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
-                                                </ItemsRepeater.Layout>
-                                                <ItemsRepeater.ItemTemplate>
-                                                    <DataTemplate x:DataType="models:HomeItemModel">
-                                                        <Button Style="{StaticResource MediaCardButtonStyle}" Padding="6" CornerRadius="8" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnHomeItemClick">
-                                                            <Button.ContextFlyout>
-                                                                <MenuFlyout>
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" Tag="{x:Bind}" Click="OnHomeItemPlayClick" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemPlayNextClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToQueueClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
-                                                                    <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToPlaylistClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
-                                                                </MenuFlyout>
-                                                            </Button.ContextFlyout>
-                                                            <Grid ColumnDefinitions="48, *, Auto">
-                                                                <Border Grid.Column="0" CornerRadius="6">
-                                                                    <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="48" Height="48" />
-                                                                </Border>
-                                                                <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
-                                                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                                    <TextBlock Text="{x:Bind Subtitle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,2,0,0" />
-                                                                </StackPanel>
-                                                                <Border Grid.Column="2" Background="#16FFFFFF" BorderBrush="#25FFFFFF" BorderThickness="1" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="5">
-                                                                        <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
-                                                                        <TextBlock Text="Otevřít" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                            <Grid x:Name="TrendingAlbumsContainer">
+                                                <Grid.RenderTransform>
+                                                    <TranslateTransform x:Name="TrendingAlbumsTransform" X="0" />
+                                                </Grid.RenderTransform>
+                                                <ItemsRepeater ItemsSource="{x:Bind ViewModel.TrendingAlbumsAndPlaylists, Mode=OneWay}">
+                                                    <ItemsRepeater.Layout>
+                                                        <UniformGridLayout MinItemWidth="220" MinRowSpacing="10" MinColumnSpacing="10" Orientation="Horizontal" />
+                                                    </ItemsRepeater.Layout>
+                                                    <ItemsRepeater.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:HomeItemModel">
+                                                            <Button Style="{StaticResource MediaCardButtonStyle}" Padding="6" CornerRadius="8" Tag="{x:Bind}" DataContext="{x:Bind}" Click="OnHomeItemClick">
+                                                                <Button.ContextFlyout>
+                                                                    <MenuFlyout>
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlay, Mode=OneWay}" Icon="Play" Tag="{x:Bind}" Click="OnHomeItemPlayClick" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextPlayNext, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemPlayNextClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextAddToQueue, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToQueueClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                        <MenuFlyoutItem Text="{x:Bind services:Loc.Instance.TextSaveToPlaylist, Mode=OneWay}" Icon="Add" Tag="{x:Bind}" Click="OnHomeItemAddToPlaylistClick" Visibility="{x:Bind IsSong, Converter={StaticResource BoolToVis}}" />
+                                                                    </MenuFlyout>
+                                                                </Button.ContextFlyout>
+                                                                <Grid ColumnDefinitions="48, *, Auto">
+                                                                    <Border Grid.Column="0" CornerRadius="6">
+                                                                        <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" Width="48" Height="48" />
+                                                                    </Border>
+                                                                    <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                        <TextBlock Text="{x:Bind Subtitle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="11" TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,2,0,0" />
                                                                     </StackPanel>
-                                                                </Border>
-                                                            </Grid>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsRepeater.ItemTemplate>
-                                            </ItemsRepeater>
+                                                                    <Border Grid.Column="2" Background="#16FFFFFF" BorderBrush="#25FFFFFF" BorderThickness="1" CornerRadius="12" Padding="10,5" VerticalAlignment="Center">
+                                                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                                                            <FontIcon Glyph="&#xE76C;" FontSize="10" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                                            <TextBlock Text="Otevřít" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsRepeater.ItemTemplate>
+                                                </ItemsRepeater>
+                                            </Grid>
                                         </StackPanel>
                                     </Border>
                                 </Grid>
@@ -716,7 +1165,8 @@
                                                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                                               VerticalScrollBarVisibility="Disabled"
                                                               HorizontalScrollMode="Enabled"
-                                                              VerticalScrollMode="Disabled">
+                                                              VerticalScrollMode="Disabled"
+                                                              PointerWheelChanged="OnHorizontalScrollViewerPointerWheelChanged">
                                                     <ItemsRepeater ItemsSource="{x:Bind Items}">
                                                         <ItemsRepeater.Layout>
                                                             <StackLayout Orientation="Horizontal" Spacing="14" />
@@ -1011,6 +1461,12 @@
                             
                             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                                 <StackPanel Spacing="24">
+                                    <StackPanel.ChildrenTransitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromVerticalOffset="16" />
+                                            <RepositionThemeTransition />
+                                        </TransitionCollection>
+                                    </StackPanel.ChildrenTransitions>
                                     <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" Height="3" />
 
                                     <!-- Empty state -->
@@ -1183,6 +1639,12 @@
 
                                 <!-- Tab Contents -->
                                 <Grid Grid.Row="2">
+                                    <Grid.ChildrenTransitions>
+                                        <TransitionCollection>
+                                            <EntranceThemeTransition FromVerticalOffset="16" />
+                                            <RepositionThemeTransition />
+                                        </TransitionCollection>
+                                    </Grid.ChildrenTransitions>
                                     <!-- Liked Songs Tab -->
                                     <Grid Visibility="{x:Bind ViewModel.LibraryTab, Mode=OneWay, Converter={StaticResource StringToVis}, ConverterParameter='Liked'}" RowDefinitions="Auto, *">
                                         <!-- Hero Banner for Liked Songs -->
@@ -1970,7 +2432,6 @@
 
                     </Grid>
                 </Grid>
-            </NavigationView>
         </Grid>
 
         <!-- Bottom Section: Native Modern Docked Player Bar -->
@@ -1987,6 +2448,11 @@
                 
                 <!-- Left: Current Song Info & Like/Dislike -->
                 <Grid Grid.Column="0" ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center" Visibility="{x:Bind ViewModel.IsCurrentSongNotNull, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <Grid.Transitions>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromHorizontalOffset="-20" />
+                        </TransitionCollection>
+                    </Grid.Transitions>
                     <Border Grid.Column="0" CornerRadius="8">
                         <Image Source="{x:Bind ViewModel.CurrentSong.ThumbnailUrl, Mode=OneWay}" Width="56" Height="56" Stretch="UniformToFill" />
                     </Border>
@@ -2021,7 +2487,13 @@
                     </StackPanel>
                 </Grid>
 
-                <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.TextNoSongPlaying, Mode=OneWay}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontStyle="Italic" FontSize="13" Visibility="{x:Bind ViewModel.IsCurrentSongNull, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Grid.Column="0" Text="{x:Bind ViewModel.TextNoSongPlaying, Mode=OneWay}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontStyle="Italic" FontSize="13" Visibility="{x:Bind ViewModel.IsCurrentSongNull, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <TextBlock.Transitions>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromHorizontalOffset="-10" />
+                        </TransitionCollection>
+                    </TextBlock.Transitions>
+                </TextBlock>
 
                 <!-- Center: Playback Controls & Timeline -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4" MaxWidth="600">
@@ -2088,13 +2560,18 @@
 
                 <!-- Right: Tools, Volume & Fullscreen Button -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="8">
-                    <Button Command="{x:Bind ViewModel.ToggleMuteCommand}"
+                    <Button x:Name="BottomVolumeMuteButton"
+                            Command="{x:Bind ViewModel.ToggleMuteCommand}"
                             Width="32" Height="32" CornerRadius="16" Padding="0"
                             Background="Transparent" BorderBrush="Transparent"
                             ToolTipService.ToolTip="{x:Bind services:Loc.Instance.TextMute, Mode=OneWay}">
                         <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </Button>
-                    <Slider Minimum="0" Maximum="1" StepFrequency="0.01" Value="{x:Bind ViewModel.Volume, Mode=TwoWay}" Width="85" VerticalAlignment="Center" PointerWheelChanged="OnVolumePointerWheelChanged" />
+                    <Slider x:Name="BottomVolumeSlider"
+                            Minimum="0" Maximum="1" StepFrequency="0.01"
+                            Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
+                            Width="85" VerticalAlignment="Center"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.VolumePercentageText, Mode=OneWay}" />
 
                     <Button Command="{x:Bind ViewModel.ToggleFullScreenPlayerCommand}"
                             Width="38" Height="38" CornerRadius="19" Padding="0"
@@ -2110,8 +2587,12 @@
     <!-- FULLSCREEN PLAYER OVERLAY -->
     <Grid x:Name="FullScreenOverlay"
           Grid.RowSpan="3"
-          Visibility="{x:Bind ViewModel.IsFullScreenPlayerVisible, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+          Visibility="Collapsed"
+          Opacity="0"
           Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RenderTransform>
+            <TranslateTransform x:Name="FullScreenTransform" Y="0" />
+        </Grid.RenderTransform>
         
         <!-- Backdrop Image and Hardware Blur Layers -->
         <Grid x:Name="BlurBackgroundHost">
@@ -2121,6 +2602,12 @@
         </Grid>
 
         <Grid ColumnDefinitions="6*, 4*" Padding="40">
+            <Grid.ChildrenTransitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition FromVerticalOffset="25" />
+                    <RepositionThemeTransition />
+                </TransitionCollection>
+            </Grid.ChildrenTransitions>
             
             <!-- Left: Full Player Details -->
             <Grid Grid.Column="0" RowDefinitions="Auto, *">
@@ -2133,9 +2620,33 @@
                 </Button>
 
                 <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20" MaxWidth="520">
-                    <Border CornerRadius="16">
-                        <Image Source="{x:Bind ViewModel.CurrentSong.ThumbnailUrl, Mode=OneWay}" Width="360" Height="360" Stretch="UniformToFill" HorizontalAlignment="Center" />
-                    </Border>
+                    <!-- Album Cover with Mouse Wheel Volume Control & Visual Feedback -->
+                    <Grid x:Name="FullScreenAlbumArtContainer"
+                          Width="360" Height="360"
+                          Background="Transparent"
+                          ToolTipService.ToolTip="{x:Bind ViewModel.VolumePercentageText, Mode=OneWay}">
+                        <Border CornerRadius="16">
+                            <Image Source="{x:Bind ViewModel.CurrentSong.ThumbnailUrl, Mode=OneWay}"
+                                   Width="360" Height="360"
+                                   Stretch="UniformToFill"
+                                   HorizontalAlignment="Center" />
+                        </Border>
+
+                        <!-- Volume OSD Overlay (shown on mouse wheel scroll) -->
+                        <Border x:Name="FullScreenVolumeOsd"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="#D018181C" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                CornerRadius="20" Padding="18,10"
+                                Opacity="0" IsHitTestVisible="False">
+                            <Border.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.2" />
+                            </Border.OpacityTransition>
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="20" Foreground="{StaticResource MelodiumAccentBrush}" />
+                                <TextBlock Text="{x:Bind ViewModel.VolumePercentageText, Mode=OneWay}" FontSize="16" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                     
                     <StackPanel Spacing="6" HorizontalAlignment="Center">
                         <TextBlock Text="{x:Bind ViewModel.CurrentSong.Title, Mode=OneWay}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="2" />
@@ -2225,13 +2736,18 @@
 
                     <!-- Fullscreen Volume Control -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="0,12,0,0">
-                        <Button Command="{x:Bind ViewModel.ToggleMuteCommand}"
+                        <Button x:Name="FullScreenVolumeMuteButton"
+                                Command="{x:Bind ViewModel.ToggleMuteCommand}"
                                 Width="36" Height="36" CornerRadius="18" Padding="0"
                                 Background="Transparent" BorderBrush="Transparent"
                                 ToolTipService.ToolTip="{x:Bind services:Loc.Instance.TextMute, Mode=OneWay}">
                             <FontIcon Glyph="{x:Bind ViewModel.VolumeGlyph, Mode=OneWay}" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </Button>
-                        <Slider Minimum="0" Maximum="1" StepFrequency="0.01" Value="{x:Bind ViewModel.Volume, Mode=TwoWay}" Width="200" VerticalAlignment="Center" PointerWheelChanged="OnVolumePointerWheelChanged" />
+                        <Slider x:Name="FullScreenVolumeSlider"
+                                Minimum="0" Maximum="1" StepFrequency="0.01"
+                                Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
+                                Width="200" VerticalAlignment="Center"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.VolumePercentageText, Mode=OneWay}" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -2323,13 +2839,21 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Queue List -->
-                <ListView Grid.Row="1"
-                          ItemsSource="{x:Bind ViewModel.PlaybackQueue, Mode=OneWay}"
-                          SelectedItem="{x:Bind ViewModel.SelectedQueueSong, Mode=TwoWay}"
-                          ItemClick="OnQueueItemClick"
-                          IsItemClickEnabled="True"
-                          Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
+                <!-- Tab View Container: Queue List & Karaoke Lyrics View -->
+                <Grid Grid.Row="1">
+                    <Grid.ChildrenTransitions>
+                        <TransitionCollection>
+                            <EntranceThemeTransition FromVerticalOffset="20" />
+                            <RepositionThemeTransition />
+                        </TransitionCollection>
+                    </Grid.ChildrenTransitions>
+
+                    <!-- Queue List -->
+                    <ListView ItemsSource="{x:Bind ViewModel.PlaybackQueue, Mode=OneWay}"
+                              SelectedItem="{x:Bind ViewModel.SelectedQueueSong, Mode=TwoWay}"
+                              ItemClick="OnQueueItemClick"
+                              IsItemClickEnabled="True"
+                              Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:SongModel">
                             <Grid ColumnDefinitions="48, *, Auto" Margin="0,4" VerticalAlignment="Center">
@@ -2356,7 +2880,7 @@
                 </ListView>
 
                 <!-- Karaoke Lyrics View -->
-                <Grid Grid.Row="1" Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                <Grid Visibility="{x:Bind ViewModel.IsKaraokeMode, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                     <!-- Empty state -->
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10"
                                 Visibility="{x:Bind ViewModel.HasLyrics, Mode=OneWay, Converter={StaticResource InverseBoolToVis}}">
@@ -2439,6 +2963,7 @@
                             <TextBlock Text="{x:Bind ViewModel.TextLoadingLyrics, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Grid>
+                </Grid>
                 </Grid>
             </Grid>
 
